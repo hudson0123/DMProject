@@ -1,0 +1,80 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment directories and configurations
+venv/
+env/
+ENV/
+lib/
+bin/
+pyvenv.cfg
+
+# Environment variables
+.env
+
+# Installed packages and dependencies
+*.egg-info/
+*.egg
+*.wheel
+*.whl
+*.dist-info/
+
+# Pip log files
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Flask cache, logs, and instance folder
+instance/
+*.log
+*.pot
+*.pyc
+*.pyo
+
+# macOS hidden files
+.DS_Store
+
+# Docker
+.dockerignore
+docker-compose.yml
+docker-compose.override.yml
+docker-compose.*.yml
+.env.docker
+.env.local
+*.pid
+*.log
+
+# IDE and Editor configurations
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# Test and coverage files
+.pytest_cache/
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Node.js
+node_modules/
+
+# Distribution / packaging
+dist/
+build/
+.eggs/
+sdist/
+bdist/
+
+# Data files (adjust if necessary)
+data/*.csv
+data/*.json
+data/*.db

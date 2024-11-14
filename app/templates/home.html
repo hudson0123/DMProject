@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Genre Classification Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Music Genre Classification Results</h1>
+        {% if model_results %}
+            <h2>Model Evaluation Metrics</h2>
+            <div class="models-container">
+                {% for model_name, metrics in model_results.items() %}
+                    <div class="model-result">
+                        <h3>{{ model_name }}</h3>
+                        <p><strong>Best Parameters:</strong> {{ metrics.best_params }}</p>
+                        <ul>
+                            <li>Accuracy: {{ metrics.accuracy }}</li>
+                            <li>Precision (Weighted): {{ metrics.precision_weighted }}</li>
+                            <li>Recall (Weighted): {{ metrics.recall_weighted }}</li>
+                            <li>F1 Score (Weighted): {{ metrics.f1_weighted }}</li>
+                            <li>Cohen's Kappa: {{ metrics.cohen_kappa }}</li>
+                            <li>Hamming Loss: {{ metrics.hamming_loss }}</li>
+                        </ul>
+                        <h4>Classification Report:</h4>
+                        <table class="classification-table">
+                            <tr>
+                                <th>Label</th>
+                                <th>Precision</th>
+                                <th>Recall</th>
+                                <th>F1-Score</th>
+                                <th>Support</th>
+                            </tr>
+                            {% for label, scores in metrics.classification_report.items() if label != 'accuracy' %}
+                                <tr>
+                                    <td>{{ label }}</td>
+                                    <td>{{ scores.precision | default(0) | round(2) }}</td>
+                                    <td>{{ scores.recall | default(0) | round(2) }}</td>
+                                    <td>{{ scores['f1-score'] | default(0) | round(2) }}</td>
+                                    <td>{{ scores.support }}</td>
+                                </tr>
+                            {% endfor %}
+                        </table>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="flash-message">No results available. Please check the data and try again.</p>
+        {% endif %}
+    </div>    
+</body>
+</html>
