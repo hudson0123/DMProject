@@ -73,8 +73,3 @@ build/
 .eggs/
 sdist/
 bdist/
-
-# Data files (adjust if necessary)
-data/*.csv
-data/*.json
-data/*.db
