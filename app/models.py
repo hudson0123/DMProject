@@ -1,48 +1,81 @@
-import numpy as np
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
+# app/models.py
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn import tree
 
-# Define models
+# Global configuration
+enable_hyperparam_tuning = False
+
+# Model definitions with optimized parameters
 models = {
-    "Multinomial Naive Bayes": MultinomialNB(),
-    "Random Forest": RandomForestClassifier(),
-    #"Support Vector Classifier": SVC(),
-    "Logistic Regression": LogisticRegression(),
-    "Decision Tree Classifier": tree.DecisionTreeClassifier()
+    "Random Forest": RandomForestClassifier(
+        n_estimators=93,
+        max_depth=8,
+        min_samples_split=5,
+        min_samples_leaf=4,
+        max_features='sqrt',
+        class_weight='balanced',
+        random_state=42
+    ),
+    
+    "Gradient Boosting": GradientBoostingClassifier(
+        n_estimators=100,
+        learning_rate=0.05,
+        max_depth=3,
+        min_samples_split=5,
+        min_samples_leaf=3,
+        subsample=0.8,
+        random_state=42
+    ),
+    
+    "Logistic Regression": LogisticRegression(
+        C=0.1,
+        max_iter=1000,
+        class_weight='balanced',
+        random_state=42
+    )
 }
 
-# Define hyperparameter grids for each model
-param_grids = {
-    "Multinomial Naive Bayes": {
-        'alpha': np.linspace(0.1, 1.0, 10),
-        'fit_prior': [True, False]
-    },
+# Refined parameter ranges based on optimization results
+param_ranges = {
     "Random Forest": {
-        'n_estimators': [50, 100, 200],
-        'max_depth': [None, 10, 20, 30],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2']
+        # Focus around successful values
+        'n_estimators': ('int', (50, 300)),  # Narrowed around 93
+        'max_depth': ('int', (7, 15)),       # Increased minimum, focused on higher values
+        'min_samples_split': ('int', (2, 15)), # Narrowed around successful range
+        'min_samples_leaf': ('int', (2, 15)),  # Narrowed around successful range
+        'max_features': ('categorical', ['sqrt']),  # 'sqrt' consistently performed better
+        'bootstrap': ('categorical', [True, False]),  # Added to try bagging variations
+        'warm_start': ('categorical', [True, False]),  # Added for potential improvement
+        'criterion': ('categorical', ['gini', 'entropy', 'log_loss'])  # Added to test different split criteria
     },
-    "Support Vector Classifier": {
-        'C': [0.1, 1, 10, 100],
-        'kernel': ['linear', 'rbf', 'poly'],
-        'gamma': ['scale', 'auto']
+    
+    "Gradient Boosting": {
+        'n_estimators': ('int', (50, 250)),
+        'max_depth': ('int', (2, 10)),
+        'learning_rate': ('float', (0.001, 1)),
+        'min_samples_split': ('int', (2, 15)),
+        'min_samples_leaf': ('int', (1, 10)),
+        'subsample': ('float', (0.3, 1.5))
     },
+    
     "Logistic Regression": {
-        'C': [0.01, 0.1, 1, 10, 100],
-        'solver': ['liblinear', 'saga'],
-        'max_iter': [100, 200, 500]
-    },
-    "Decision Tree": {
-        'criterion': ['gini', 'entropy'],
-        'splitter': ['best', 'random'],
-        'max_depth': [None, 10, 20, 30, 40],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': [None, 'sqrt', 'log2']
+        'C': ('float', (0.001, 20.0)),
+        'max_iter': ('int', (100, 5000))
     }
 }
+
+# Add advanced parameter controls
+advanced_params = {
+    "Random Forest": {
+        'class_weight': 'balanced',
+        'max_features': 'sqrt',
+        'random_state': 42,
+        'n_jobs': -1,
+        'verbose': 0
+    }
+}
+
+# Function to update hyperparameter tuning setting
+def set_hyperparam_tuning(enabled):
+    global enable_hyperparam_tuning
+    enable_hyperparam_tuning = enabled

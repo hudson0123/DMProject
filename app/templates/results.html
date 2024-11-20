@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Genre Classification Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        {% if model_results and model_results.get('Error') %}
+        <div class="error-message">
+            <h2>Error During Analysis</h2>
+            <p>An error occurred while processing the models. Please try again or contact support if the issue persists.</p>
+        </div>
+        {% endif %}
+        <h1>Music Genre Classification Results</h1>
+        <div class="smote-toggle">
+            <h2>SMOTE Settings</h2>
+            <div class="toggle-container">
+                <span>SMOTE is currently: {{ 'Enabled' if use_smote else 'Disabled' }}</span>
+                <form method="get" class="toggle-form">
+                    <input type="hidden" name="use_smote" value="{{ 'false' if use_smote else 'true' }}">
+                    <button type="submit" class="toggle-button {{ 'active' if use_smote else '' }}">
+                        {{ 'Disable SMOTE' if use_smote else 'Enable SMOTE' }}
+                    </button>
+                </form>
+            </div>
+            {% if analysis_results.smote_applied %}
+            <div class="distribution-comparison">
+                <div class="distribution-box">
+                    <h3>Original Class Distribution</h3>
+                    <ul>
+                        {% if analysis_results.original_class_distribution %}
+                            {% for genre, count in analysis_results.original_class_distribution.items() %}
+                            <li>{{ genre }}: {{ count }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No distribution data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="distribution-box">
+                    <h3>SMOTE-Balanced Distribution</h3>
+                    <ul>
+                        {% if analysis_results.smote_class_distribution %}
+                            {% for genre, count in analysis_results.smote_class_distribution.items() %}
+                            <li>{{ genre }}: {{ count }}</li>
+                            {% endfor %}
+                        {% else %}
+                            <li>No distribution data available</li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <!-- Dataset Analysis Section -->
+        {% if analysis_results %}
+            <h2>Dataset Analysis</h2>
+            <div class="analysis-section">
+                <div class="stats-box">
+                    <h3>Dataset Statistics</h3>
+                    <ul>
+                        <li>Total Records: {{ analysis_results.total_records }}</li>
+                        <li>Number of Features: {{ analysis_results.features }}</li>
+                        <li>Number of Genres: {{ analysis_results.genres }}</li>
+                        <li>Class Imbalance Ratio: {{ "%.2f"|format(analysis_results.imbalance_ratio) }}</li>
+                    </ul>
+                </div>
+
+                <!-- Visualizations -->
+                <div class="visualizations">
+                    <div class="visualization-box">
+                        <h3>Genre Distribution</h3>
+                        <img src="{{ url_for('static', filename='genre_distribution.png') }}" alt="Genre Distribution">
+                    </div>
+                    <div class="visualization-box">
+                        <h3>Feature Correlations</h3>
+                        <img src="{{ url_for('static', filename='correlations.png') }}" alt="Feature Correlations">
+                    </div>
+                    <div class="visualization-box">
+                        <h3>Feature Distributions</h3>
+                        <div class="feature-distributions-container">
+                            <div class="feature-distributions-main">
+                                {% for feature in ['danceability', 'energy', 'key', 
+                                                 'loudness', 'speechiness', 'acousticness', 
+                                                 'instrumentalness', 'liveness', 'valence'] %}
+                                    <div class="distribution-graph">
+                                        <img src="{{ url_for('static', filename='distributions/' + feature + '_dist.png') }}" 
+                                             alt="{{ feature }} distribution"
+                                             title="{{ feature }} distribution">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            <div class="feature-distributions-bottom">
+                                {% for feature in ['tempo', 'duration_ms'] %}
+                                    <div class="distribution-graph">
+                                        <img src="{{ url_for('static', filename='distributions/' + feature + '_dist.png') }}" 
+                                             alt="{{ feature }} distribution"
+                                             title="{{ feature }} distribution">
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Quality -->
+                {% if analysis_results.quality_checks %}
+                <div class="quality-box">
+                    <h3>Data Quality Checks</h3>
+                    <ul>
+                        <li>Duplicate Records: {{ analysis_results.quality_checks.duplicates }}</li>
+                        <li>Missing Values: {{ analysis_results.quality_checks.missing_values | length }}</li>
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- Model Results Section -->
+        {% if model_results %}
+            <h2>Model Evaluation Metrics</h2>
+            <div class="models-container">
+                {% for model_name, metrics in model_results.items() %}
+                    {% if metrics and metrics.model is not none %}  <!-- Only show if metrics are valid -->
+                        <div class="model-result">
+                            <h3>{{ model_name }}</h3>
+                            {% if use_hyperopt and metrics.get('best_params') and metrics.best_params != "Error during training" %}
+                            <div class="hyperparameters">
+                                <h4>Best Parameters:</h4>
+                                <ul>
+                                {% for param, value in metrics.best_params.items() %}
+                                    <li><strong>{{ param }}:</strong> {{ value }}</li>
+                                {% endfor %}
+                                </ul>
+                                {% if metrics.get('cv_score') %}
+                                <p><strong>Best Cross-Validation Score:</strong> {{ "%.3f"|format(metrics.cv_score) }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <h3>{{ model_name }}</h3>
+                            <ul>
+                                <li><strong>Accuracy:</strong> {{ "%.3f"|format(metrics.accuracy) }}</li>
+                                <li><strong>Precision (Weighted):</strong> {{ "%.3f"|format(metrics.precision_weighted) }}</li>
+                                <li><strong>Recall (Weighted):</strong> {{ "%.3f"|format(metrics.recall_weighted) }}</li>
+                                <li><strong>F1 Score (Weighted):</strong> {{ "%.3f"|format(metrics.f1_weighted) }}</li>
+                                <li><strong>Cohen's Kappa:</strong> {{ "%.3f"|format(metrics.cohen_kappa) }}</li>
+                                <li><strong>Hamming Loss:</strong> {{ "%.3f"|format(metrics.hamming_loss) }}</li>
+                            </ul>
+                            {% if metrics.classification_report %}
+                                <h4>Classification Report:</h4>
+                                <div class="table-container">
+                                    <table class="classification-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Label</th>
+                                                <th>Precision</th>
+                                                <th>Recall</th>
+                                                <th>F1-Score</th>
+                                                <th>Support</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for label, scores in metrics.classification_report.items() if label not in ['accuracy', 'macro avg', 'weighted avg', 'error'] %}
+                                                <tr>
+                                                    <td>{{ label }}</td>
+                                                    <td>{{ "%.2f"|format(scores.precision) }}</td>
+                                                    <td>{{ "%.2f"|format(scores.recall) }}</td>
+                                                    <td>{{ "%.2f"|format(scores['f1-score']) }}</td>
+                                                    <td>{{ scores.support }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="flash-message">No results available. Please check the data and try again.</p>
+        {% endif %}
+    </div>    
+</body>
+</html>
