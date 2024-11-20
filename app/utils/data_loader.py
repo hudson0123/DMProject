@@ -13,7 +13,8 @@ from sklearn.impute import IterativeImputer
 
 def load_and_preprocess_data(filename, use_smote=False):
     """
-    Loads and preprocesses data with advanced techniques to prevent overfitting
+    Loads and preprocesses data with advanced techniques to prevent overfitting,
+    including removing outliers and balancing classes if needed.
     """
     try:
         # Load data
@@ -25,7 +26,7 @@ def load_and_preprocess_data(filename, use_smote=False):
         df = df.drop([
             "type", "id", "uri", "track_href", "analysis_url", "song_name", 
             "title"
-        ], axis=1)
+        ], axis=1, errors='ignore')
         
         # Remove duplicates
         original_size = len(df)
@@ -37,6 +38,20 @@ def load_and_preprocess_data(filename, use_smote=False):
         original_analysis = analyze_dataset(df.copy())
         quality_checks = check_data_quality(df.copy())
         original_analysis['quality_checks'] = quality_checks
+        
+        # Remove outliers using the IQR method
+        def remove_outliers(dataframe):
+            for col in dataframe.select_dtypes(include=['float64', 'int64']).columns:
+                Q1 = dataframe[col].quantile(0.25)
+                Q3 = dataframe[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower_bound = Q1 - 1.5 * IQR
+                upper_bound = Q3 + 1.5 * IQR
+                dataframe = dataframe[(dataframe[col] >= lower_bound) & (dataframe[col] <= upper_bound)]
+            return dataframe
+        
+        df = remove_outliers(df)
+        print(f"Dataset size after outlier removal: {len(df)} records")
         
         # Feature Engineering
         df = engineer_features(df)
@@ -92,7 +107,7 @@ def load_and_preprocess_data(filename, use_smote=False):
             smote = SMOTENC(
                 categorical_features=categorical_indices,
                 random_state=42,
-                k_neighbors=min(5, min(y_train.value_counts())-1),
+                k_neighbors=min(5, min(y_train.value_counts()) - 1),
                 sampling_strategy='not majority'  # More balanced approach
             )
             
@@ -112,6 +127,7 @@ def load_and_preprocess_data(filename, use_smote=False):
     except Exception as e:
         print(f"Error in load_and_preprocess_data: {str(e)}")
         raise
+
 
 def engineer_features(df):
     """
