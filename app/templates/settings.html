@@ -1,143 +1,64 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Genre Classification Settings</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+<!-- app/templates/settings.html -->
+{% extends "base.html" %}
 
-        .container {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 90%;
-        }
+{% block title %}Settings - Music Genre Classification{% endblock %}
 
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-size: 2rem;
-        }
+{% block content %}
+<div class="settings-container">
+    <h1>Music Genre Classification Settings</h1>
+    
+    <form action="{{ url_for('home.analyze') }}" method="GET" class="settings-form">
+        <div class="setting-group">
+            <h2>Model Selection</h2>
+            <div class="setting-options">
+                {% for model in available_models %}
+                <div class="radio-option">
+                    <input type="radio" 
+                           id="model-{{ loop.index }}" 
+                           name="model_name" 
+                           value="{{ model }}"
+                           {% if loop.first %}checked{% endif %}>
+                    <label for="model-{{ loop.index }}">{{ model }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-        .settings-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .setting-option {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 6px;
-        }
-
-        .setting-option h2 {
-            color: #34495e;
-            margin: 0 0 0.5rem 0;
-            font-size: 1.2rem;
-        }
-
-        .setting-option p {
-            margin: 0 0 1rem 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .submit-button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s ease;
-        }
-
-        .submit-button:hover {
-            background: #2980b9;
-        }
-
-        .toggle-switch input[type="checkbox"] {
-            width: 3rem;
-            height: 1.5rem;
-            appearance: none;
-            background: #ddd;
-            border-radius: 1.5rem;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .toggle-switch input[type="checkbox"]::before {
-            content: '';
-            width: 1.3rem;
-            height: 1.3rem;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 0.1rem;
-            left: 0.1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .toggle-switch input[type="checkbox"]:checked {
-            background: #2ecc71;
-        }
-
-        .toggle-switch input[type="checkbox"]:checked::before {
-            transform: translateX(1.5rem);
-        }
-
-        .toggle-label {
-            font-weight: 500;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Music Genre Classification Settings</h1>
-        <form action="/analyze" method="get" class="settings-form">
-            <div class="setting-option">
-                <h2>SMOTE (Synthetic Minority Over-sampling Technique)</h2>
-                <p>Balances the dataset by generating synthetic examples for minority classes. This can improve classification performance for imbalanced datasets.</p>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="use_smote" name="use_smote" value="true">
-                    <span class="toggle-label">Enable SMOTE</span>
+        <div class="setting-group">
+            <h2>Data Processing</h2>
+            <div class="setting-options">
+                <div class="radio-option">
+                    <input type="radio" id="process-none" name="processing_method" value="none" checked>
+                    <label for="process-none">No Processing</label>
+                    <p class="option-description">Use the original dataset without any balancing or filtering.</p>
+                </div>
+                
+                <div class="radio-option">
+                    <input type="radio" id="process-smote" name="processing_method" value="smote">
+                    <label for="process-smote">SMOTE</label>
+                    <p class="option-description">Balance the dataset by generating synthetic examples for minority classes.</p>
+                </div>
+                
+                <div class="radio-option">
+                    <input type="radio" id="process-filtering" name="processing_method" value="filtering">
+                    <label for="process-filtering">Genre Filtering</label>
+                    <p class="option-description">Consolidate genres with fewer than 2000 entries into 'Other' category.</p>
                 </div>
             </div>
+        </div>
 
-            <div class="setting-option">
-                <h2>Hyperparameter Tuning</h2>
-                <p>Automatically finds the best parameters for each model. This improves accuracy but significantly increases processing time.</p>
+        <div class="setting-group">
+            <h2>Model Optimization</h2>
+            <div class="setting-options">
                 <div class="toggle-switch">
-                    <input type="checkbox" id="use_hyperopt" name="use_hyperopt" value="true">
-                    <span class="toggle-label">Enable Hyperparameter Tuning</span>
+                    <input type="checkbox" id="use-hyperopt" name="use_hyperopt" value="true">
+                    <label for="use-hyperopt">Enable Hyperparameter Optimization</label>
+                    <p class="option-description">Automatically find the best parameters for the selected model. This will increase processing time.</p>
                 </div>
             </div>
+        </div>
 
-            <button type="submit" class="submit-button">Start Analysis</button>
-        </form>
-    </div>
-</body>
-</html>
+        <button type="submit" class="submit-button">Start Analysis</button>
+    </form>
+</div>
+{% endblock %}

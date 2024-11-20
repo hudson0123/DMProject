@@ -1,31 +1,65 @@
 # app/__init__.py
-from flask import Flask
-from config import Config
 
-def create_app(config_class=Config):
-    """Create and configure the Flask application"""
-    app = Flask(__name__)
-    app.config.from_object(config_class)
+import matplotlib
+matplotlib.use('Agg')
+
+from flask import Flask, current_app
+import click
+from pathlib import Path
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+from typing import Optional
+
+def create_app(config_object: Optional[object] = None) -> Flask:
+    """
+    Flask application factory.
     
-    # Initialize extensions here if any
+    Args:
+        config_object: Configuration object (optional)
+        
+    Returns:
+        Configured Flask application
+    """
+    # Create Flask app
+    app = Flask(__name__)
+    
+    # Load default configuration
+    app.config.from_mapping(
+        SECRET_KEY=os.environ.get('SECRET_KEY') or 'dev-key-please-change',
+        DATA_DIR=str(Path('data')),  # Convert to string for config
+        STATIC_DIR=str(Path('app/static')),  # Convert to string for config
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max file size
+    )
+    
+    # Load additional configuration
+    if config_object is not None:
+        app.config.from_object(config_object)
+        
+    # Ensure the instance folder exists
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
+        
+    # Ensure static and data directories exist
+    Path(app.config['DATA_DIR']).mkdir(parents=True, exist_ok=True)
+    Path(app.config['STATIC_DIR']).mkdir(parents=True, exist_ok=True)
     
     # Register blueprints
-    from .routes import home_bp
-    app.register_blueprint(home_bp)
+    register_blueprints(app)
     
     return app
 
-# Avoid circular imports by moving these to the end
-from .utils.data_loader import load_and_preprocess_data
-from .utils.model_utils import train_and_evaluate_models
-from .utils.analysis import analyze_dataset, check_data_quality
-from .utils.visualization import save_visualizations
-
-__all__ = [
-    'create_app',
-    'load_and_preprocess_data',
-    'train_and_evaluate_models',
-    'analyze_dataset',
-    'check_data_quality',
-    'save_visualizations'
-]
+def register_blueprints(app: Flask) -> None:
+    """
+    Register Flask blueprints.
+    
+    Args:
+        app: Flask application instance
+    """
+    # Import blueprints
+    from .routes import home_bp
+    
+    # Register blueprints
+    app.register_blueprint(home_bp)

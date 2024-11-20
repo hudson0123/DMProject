@@ -1,141 +1,349 @@
+# app/utils/visualization.py
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+from typing import Dict, List, Optional, Union, Tuple
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import io
+import base64
+from sklearn.metrics import confusion_matrix
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import logging
 
-def save_visualizations(df, stats):
+logger = logging.getLogger(__name__)
+
+
+class Visualizer:
     """
-    Generates and saves visualizations.
+    Handles visualization generation for music genre classification.
+    Creates and saves various plots for data analysis and model evaluation.
+    """
     
-    Parameters:
-    df (pandas.DataFrame): Input dataset
-    stats (dict): Statistics dictionary from analyze_dataset
-    """
-    try:
-        # Create static directory if it doesn't exist
-        if not os.path.exists('app/static'):
-            os.makedirs('app/static')
+    def __init__(self, save_dir: Optional[Union[str, Path]] = None):
+        """
+        Initialize visualizer.
         
-        # Set style for all plots
+        Args:
+            save_dir: Directory to save visualizations (optional)
+        """
+        self.save_dir = Path(save_dir) if save_dir else None
+        if self.save_dir:
+            self.save_dir.mkdir(parents=True, exist_ok=True)
+            
+        # Set style
         plt.style.use('seaborn')
         
-        # Genre distribution plot
-        create_genre_distribution(df)
+    def _save_plot(self, name: str) -> str:
+        """
+        Save plot to file and return base64 string.
         
-        # Correlation heatmap
-        create_correlation_heatmap(df, stats)
-        
-        # Feature distributions
-        create_feature_distributions(df)
-        
-    except Exception as e:
-        print(f"Error in save_visualizations: {str(e)}")
-        plt.close('all')  # Make sure to close all figures in case of error
-        raise
-
-def create_feature_distributions(df):
-    """Creates and saves individual feature distribution plots."""
-    try:
-        # Define the numeric features we want to plot
-        features_to_plot = [
-            'danceability', 'energy', 'key', 'loudness', 
-            'speechiness', 'acousticness', 'instrumentalness',
-            'liveness', 'valence', 'tempo', 'duration_ms'
-        ]
-        
-        # Filter features that actually exist in the dataframe
-        features_to_plot = [f for f in features_to_plot if f in df.columns]
-        
-        # Create directory for individual plots if it doesn't exist
-        dist_dir = 'app/static/distributions'
-        os.makedirs(dist_dir, exist_ok=True)
-        
-        # Create individual plots
-        for col in features_to_plot:
-            plt.figure(figsize=(10, 10))
+        Args:
+            name: Name of the plot
             
-            # Create the distribution plot with improved styling
-            sns.histplot(data=df, x=col, kde=True, color='#4A90E2')
-            
-            # Customize the plot
-            plt.title(col.replace('_', ' ').title(), fontsize=16, pad=20)
-            plt.xlabel(col.replace('_', ' ').title(), fontsize=14)
-            plt.ylabel('Count', fontsize=14)
-            plt.xticks(fontsize=12, rotation=45)
-            plt.yticks(fontsize=12)
-            
-            # Add grid and style improvements
-            plt.grid(True, alpha=0.3, linestyle='--')
-            plt.gca().spines['top'].set_visible(False)
-            plt.gca().spines['right'].set_visible(False)
-            
-            # Improve plot background
-            plt.gca().set_facecolor('#f8f9fa')
-            plt.gcf().set_facecolor('white')
-            
-            # Add padding to prevent label cutoff
-            plt.tight_layout(pad=2.0)
-            
-            # Save individual plot with high resolution
-            plt.savefig(f'{dist_dir}/{col}_dist.png', 
-                       dpi=150,
-                       bbox_inches='tight',
-                       pad_inches=0.3,
-                       facecolor='white')
-            plt.close()
-            
-    except Exception as e:
-        print(f"Error in create_feature_distributions: {str(e)}")
-        plt.close('all')
-        raise
-
-def create_correlation_heatmap(df, stats):
-    """Creates and saves the correlation heatmap."""
-    try:
-        plt.figure(figsize=(15, 12))  # Increased figure size
-        
-        # Ensure we exclude the Unnamed column and other non-numeric columns
-        df_clean = df.select_dtypes(include=['float64', 'int64'])
-        df_clean = df_clean.drop(['Unnamed: 0'], axis=1, errors='ignore')
-        
-        correlation_matrix = df_clean.corr()
-        
-        # Create heatmap with larger annotations
-        sns.heatmap(correlation_matrix, 
-                   annot=True, 
-                   cmap='coolwarm', 
-                   center=0,
-                   fmt='.2f',
-                   annot_kws={'size': 10})
-        
-        plt.title('Feature Correlations', pad=20)
-        plt.tight_layout()
-        plt.savefig('app/static/correlations.png', dpi=300, bbox_inches='tight')
+        Returns:
+            Base64 encoded string of the plot
+        """
+        # Save to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
         plt.close()
         
-    except Exception as e:
-        print(f"Error in create_correlation_heatmap: {str(e)}")
-        plt.close('all')
-        raise
+        # Convert to base64
+        buf.seek(0)
+        img_str = base64.b64encode(buf.getvalue()).decode()
+        
+        # Save to file if directory specified
+        if self.save_dir:
+            plt.savefig(self.save_dir / f"{name}.png", dpi=300, bbox_inches='tight')
+            
+        return img_str
+        
+    def plot_genre_distribution(self, genre_counts: Dict[str, int]) -> str:
+        """
+        Create bar plot of genre distribution.
 
-def create_genre_distribution(df):
-    """Creates and saves the genre distribution plot."""
-    try:
-        plt.figure(figsize=(15, 10))  # Increased figure size
-        
-        # Create countplot with rotated labels
-        sns.countplot(data=df, 
-                     y='genre', 
-                     order=df['genre'].value_counts().index)
-        
-        plt.title('Genre Distribution', pad=20)
-        plt.xlabel('Count')
+        Args:
+            genre_counts: Dictionary of genre counts
+
+        Returns:
+            Base64 encoded plot image or an empty string if data is unavailable.
+        """
+        if not genre_counts:
+            logger.warning("No data provided for genre distribution plot.")
+            return ""  # Return empty string for no-data scenarios
+
+        plt.figure(figsize=(12, 6))
+        sns.barplot(x=list(genre_counts.values()), y=list(genre_counts.keys()))
+        plt.title('Genre Distribution')
+        plt.xlabel('Number of Samples')
         plt.ylabel('Genre')
+
+        return self._save_plot('genre_distribution')
+
         
-        plt.tight_layout()
-        plt.savefig('app/static/genre_distribution.png', dpi=300, bbox_inches='tight')
-        plt.close()
+    def plot_feature_distributions(self, df: pd.DataFrame, 
+                                 features: List[str]) -> Dict[str, str]:
+        """
+        Create distribution plots for features.
         
-    except Exception as e:
-        print(f"Error in create_genre_distribution: {str(e)}")
-        plt.close('all')
-        raise
+        Args:
+            df: DataFrame containing features
+            features: List of feature names to plot
+            
+        Returns:
+            Dictionary mapping feature names to base64 encoded plots
+        """
+        plots = {}
+        
+        for feature in features:
+            plt.figure(figsize=(8, 6))
+            
+            # Create distribution plot
+            sns.histplot(data=df, x=feature, kde=True)
+            
+            plt.title(f'{feature} Distribution')
+            plt.xlabel(feature)
+            plt.ylabel('Count')
+            
+            plots[feature] = self._save_plot(f'{feature}_distribution')
+            
+        return plots
+        
+    def plot_correlation_matrix(self, df: pd.DataFrame, 
+                              features: List[str]) -> str:
+        """
+        Create correlation matrix heatmap.
+        
+        Args:
+            df: DataFrame containing features
+            features: List of features to include
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(12, 10))
+        
+        # Calculate correlations
+        corr_matrix = df[features].corr()
+        
+        # Create heatmap
+        sns.heatmap(
+            corr_matrix,
+            annot=True,
+            cmap='coolwarm',
+            center=0,
+            fmt='.2f'
+        )
+        
+        plt.title('Feature Correlations')
+        
+        return self._save_plot('correlation_matrix')
+        
+    def plot_confusion_matrix(self, y_true: np.ndarray, y_pred: np.ndarray, 
+                            labels: List[str]) -> str:
+        """
+        Create confusion matrix visualization.
+        
+        Args:
+            y_true: True labels
+            y_pred: Predicted labels
+            labels: Label names
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 8))
+        
+        # Calculate confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        
+        # Create heatmap
+        sns.heatmap(
+            cm,
+            annot=True,
+            fmt='d',
+            cmap='Blues',
+            xticklabels=labels,
+            yticklabels=labels
+        )
+        
+        plt.title('Confusion Matrix')
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
+        
+        return self._save_plot('confusion_matrix')
+        
+    def plot_feature_importance(self, feature_importance: Dict[str, float], 
+                              top_n: int = 10) -> str:
+        """
+        Create feature importance bar plot.
+        
+        Args:
+            feature_importance: Dictionary of feature importance scores
+            top_n: Number of top features to show
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 6))
+        
+        # Sort and select top features
+        sorted_features = dict(sorted(
+            feature_importance.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:top_n])
+        
+        # Create bar plot
+        sns.barplot(
+            x=list(sorted_features.values()),
+            y=list(sorted_features.keys())
+        )
+        
+        plt.title(f'Top {top_n} Feature Importance')
+        plt.xlabel('Importance Score')
+        plt.ylabel('Feature')
+        
+        return self._save_plot('feature_importance')
+        
+    def plot_dimension_reduction(self, X: np.ndarray, y: np.ndarray,
+                               method: str = 'pca') -> str:
+        """
+        Create 2D visualization of high-dimensional data.
+        
+        Args:
+            X: Feature matrix
+            y: Labels
+            method: Dimension reduction method ('pca' or 'tsne')
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 8))
+        
+        # Perform dimension reduction
+        if method.lower() == 'pca':
+            reducer = PCA(n_components=2)
+        else:
+            reducer = TSNE(n_components=2, random_state=42)
+            
+        X_reduced = reducer.fit_transform(X)
+        
+        # Create scatter plot
+        scatter = plt.scatter(
+            X_reduced[:, 0],
+            X_reduced[:, 1],
+            c=y,
+            cmap='tab20',
+            alpha=0.6
+        )
+        
+        plt.title(f'{method.upper()} Visualization')
+        plt.xlabel('First Component')
+        plt.ylabel('Second Component')
+        plt.legend(
+            scatter.legend_elements()[0],
+            np.unique(y),
+            title='Genres',
+            bbox_to_anchor=(1.05, 1),
+            loc='upper left'
+        )
+        
+        return self._save_plot(f'{method}_visualization')
+        
+    def plot_learning_curves(self, train_scores: List[float], 
+                           val_scores: List[float], 
+                           train_sizes: List[int]) -> str:
+        """
+        Create learning curve plot.
+        
+        Args:
+            train_scores: List of training scores
+            val_scores: List of validation scores
+            train_sizes: List of training set sizes
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 6))
+        
+        plt.plot(train_sizes, train_scores, label='Training Score', marker='o')
+        plt.plot(train_sizes, val_scores, label='Validation Score', marker='o')
+        
+        plt.title('Learning Curves')
+        plt.xlabel('Training Examples')
+        plt.ylabel('Score')
+        plt.legend()
+        plt.grid(True)
+        
+        return self._save_plot('learning_curves')
+        
+    def create_dashboard(self, data_stats: Dict, model_results: Dict) -> str:
+        """
+        Create comprehensive visualization dashboard in HTML.
+        
+        Args:
+            data_stats: Data statistics dictionary
+            model_results: Model evaluation results
+            
+        Returns:
+            HTML string containing dashboard
+        """
+        html = """
+        <div class="dashboard">
+            <style>
+                .dashboard {
+                    font-family: Arial, sans-serif;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                .section {
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    border-radius: 5px;
+                    background-color: #f8f9fa;
+                }
+                .plot-container {
+                    margin: 20px 0;
+                    text-align: center;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+            </style>
+        """
+        
+        # Add data statistics section
+        html += """
+            <div class="section">
+                <h2>Dataset Statistics</h2>
+                <ul>
+        """
+        
+        for key, value in data_stats.items():
+            html += f"<li><strong>{key}:</strong> {value}</li>"
+            
+        html += "</ul></div>"
+        
+        # Add plots
+        for name, plot in model_results.items():
+            if isinstance(plot, str) and plot.startswith('data:image'):
+                html += f"""
+                    <div class="section">
+                        <h2>{name}</h2>
+                        <div class="plot-container">
+                            <img src="{plot}" alt="{name}">
+                        </div>
+                    </div>
+                """
+                
+        html += "</div>"
+        
+        return html

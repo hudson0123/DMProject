@@ -1,152 +1,256 @@
 # app/utils/data_loader.py
+
+from typing import Dict, Tuple, Optional, List, Union
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer, KNNImputer
-from sklearn.pipeline import Pipeline
-from imblearn.over_sampling import SMOTENC
-from category_encoders import TargetEncoder
-from scipy import sparse
-from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer
+from pathlib import Path
+import logging
 
-def load_and_preprocess_data(filename, use_smote=False):
+logger = logging.getLogger(__name__)
+
+class DataLoader:
     """
-    Loads and preprocesses data with advanced techniques to prevent overfitting
+    Handles loading and initial preparation of music genre data.
+    Provides functionality for data loading, validation, and splitting.
     """
-    try:
+    
+    # Columns that should be dropped as they're not useful for prediction
+    COLUMNS_TO_DROP = [
+        "type", "id", "uri", "track_href", "analysis_url",
+        "song_name", "title", "Unnamed: 0"
+    ]
+    
+    # Required columns for genre classification
+    REQUIRED_COLUMNS = [
+        "danceability", "energy", "key", "loudness", "mode",
+        "speechiness", "acousticness", "instrumentalness",
+        "liveness", "valence", "tempo", "duration_ms",
+        "time_signature", "genre"
+    ]
+    
+    def __init__(
+        self,
+        data_dir: Union[str, Path],
+        test_size: float = 0.2,
+        random_state: int = 42,
+        min_samples_per_genre: int = 50
+    ):
+        """
+        Initialize the data loader.
+        
+        Args:
+            data_dir: Directory containing the dataset
+            test_size: Proportion of data to use for testing
+            random_state: Random seed for reproducibility
+            min_samples_per_genre: Minimum samples required per genre
+        """
+        self.data_dir = Path(data_dir)
+        self.test_size = test_size
+        self.random_state = random_state
+        self.min_samples_per_genre = min_samples_per_genre
+        
+        # State tracking
+        self.data_stats: Dict = {}
+        self.genre_mapping: Dict[str, int] = {}
+        self.feature_names: List[str] = []
+        
+    def load_data(self, filename: str) -> pd.DataFrame:
+        """
+        Load data from file and perform initial cleaning.
+
+        Args:
+            filename: Name of the data file
+
+        Returns:
+            Cleaned DataFrame
+
+        Raises:
+            FileNotFoundError: If the data file doesn't exist
+            ValueError: If required columns are missing
+        """
+        file_path = self.data_dir / filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"Data file not found: {file_path}")
+
         # Load data
-        data_path = f"data/{filename}"
-        df = pd.read_csv(data_path, low_memory=False)
-        
-        # Drop unwanted columns
-        df = df.drop(columns=[col for col in df.columns if 'Unnamed' in col], errors='ignore')
-        df = df.drop([
-            "type", "id", "uri", "track_href", "analysis_url", "song_name", 
-            "title"
-        ], axis=1)
-        
-        # Remove duplicates
-        original_size = len(df)
-        df = df.drop_duplicates()
-        print(f"Removed {original_size - len(df)} duplicate records")
-        
-        # Store original analysis
-        from .analysis import analyze_dataset, check_data_quality
-        original_analysis = analyze_dataset(df.copy())
-        quality_checks = check_data_quality(df.copy())
-        original_analysis['quality_checks'] = quality_checks
-        
-        # Feature Engineering
-        df = engineer_features(df)
-        
-        # Separate features and target
-        X = df.drop(['genre'], axis=1)
-        y = df['genre']
-        
-        # Identify feature types
-        categorical_features = X.select_dtypes(include=['object']).columns
-        numeric_features = X.select_dtypes(include=['float64', 'int64']).columns
-        
-        # Create preprocessing pipeline with advanced imputation
-        numeric_pipeline = Pipeline([
-            ('imputer', IterativeImputer(random_state=42)),  # More sophisticated imputation
-            ('scaler', StandardScaler())
-        ])
-        
-        categorical_pipeline = Pipeline([
-            ('imputer', KNNImputer(n_neighbors=5)),  # KNN-based imputation for categorical
-            ('target_encoder', TargetEncoder(smoothing=2.0))  # Target encoding with smoothing
-        ])
-        
-        # Split data first
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
-        
-        # Process numeric features
-        X_train_numeric = numeric_pipeline.fit_transform(X_train[numeric_features])
-        X_test_numeric = numeric_pipeline.transform(X_test[numeric_features])
-        
-        # Process categorical features
-        if len(categorical_features) > 0:
-            X_train_cat = categorical_pipeline.fit_transform(X_train[categorical_features], y_train)
-            X_test_cat = categorical_pipeline.transform(X_test[categorical_features])
-            
-            # Combine features
-            X_train_processed = np.hstack([X_train_numeric, X_train_cat])
-            X_test_processed = np.hstack([X_test_numeric, X_test_cat])
-        else:
-            X_train_processed = X_train_numeric
-            X_test_processed = X_test_numeric
-        
-        # Store distribution info
-        original_analysis['original_class_distribution'] = y_train.value_counts().to_dict()
-        
-        # Apply SMOTE if enabled
-        if use_smote:
-            print("\nApplying SMOTE with advanced settings...")
-            categorical_indices = np.arange(X_train_numeric.shape[1], X_train_processed.shape[1])
-            
-            smote = SMOTENC(
-                categorical_features=categorical_indices,
-                random_state=42,
-                k_neighbors=min(5, min(y_train.value_counts())-1),
-                sampling_strategy='not majority'  # More balanced approach
-            )
-            
-            X_train_processed, y_train = smote.fit_resample(X_train_processed, y_train)
-            
-            # Update distribution info
-            original_analysis['smote_class_distribution'] = pd.Series(y_train).value_counts().to_dict()
-            print("\nClass distribution after SMOTE:")
-            print(pd.Series(y_train).value_counts())
-        else:
-            original_analysis['smote_class_distribution'] = y_train.value_counts().to_dict()
-            
-        original_analysis['smote_applied'] = use_smote
-        
-        return X_train_processed, X_test_processed, y_train, y_test, original_analysis
-        
-    except Exception as e:
-        print(f"Error in load_and_preprocess_data: {str(e)}")
-        raise
+        df = pd.read_csv(file_path, low_memory=False)
+        logger.info(f"Loaded {len(df)} rows from {filename}")
 
-def engineer_features(df):
-    """
-    Performs feature engineering to create more informative features
-    """
-    try:
-        # Tempo-related features
-        df['tempo_scaled'] = df['tempo'] / df['time_signature']
-        df['tempo_energy_ratio'] = df['tempo'] / (df['energy'] + 1e-8)
+        # Validate required columns
+        missing_cols = set(self.REQUIRED_COLUMNS) - set(df.columns)
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+
+        # Remove unnecessary columns
+        cols_to_drop = [col for col in self.COLUMNS_TO_DROP if col in df.columns]
+        df = df.drop(columns=cols_to_drop)
+
+        # Store feature names
+        self.feature_names = [col for col in df.columns if col != 'genre']
+
+        # Calculate and store data statistics
+        self._calculate_data_stats(df)
+
+        return df
+
+
+    def _calculate_data_stats(self, df: pd.DataFrame) -> None:
+        """
+        Calculate and store various statistics about the dataset.
+
+        Args:
+            df: Input DataFrame
+        """
+        self.data_stats = {
+            'total_samples': len(df),
+            'num_features': len(self.feature_names),
+            'missing_values': df.isnull().sum().to_dict(),
+            'numeric_features': df.select_dtypes(include=[np.number]).columns.tolist(),
+            'categorical_features': df.select_dtypes(exclude=[np.number]).columns.tolist(),
+        }
+
+        # Ensure genre distribution is calculated for training insights
+        if 'genre' in df.columns and not df['genre'].isnull().all():
+            self.data_stats['genre_distribution'] = df['genre'].value_counts().to_dict()
+        else:
+            logger.warning("The 'genre' column is missing or contains no valid data.")
+            self.data_stats['genre_distribution'] = {}
+
+        logger.info(f"Data statistics calculated: {self.data_stats}")
+
+
+
+
         
-        # Energy-related composite features
-        df['energy_loudness_ratio'] = df['energy'] / (df['loudness'].abs() + 1e-8)
-        df['energy_valence_product'] = df['energy'] * df['valence']
+    def prepare_data(self, df: pd.DataFrame, consolidate_genres: bool = True) -> pd.DataFrame:
+        """
+        Prepare data for training by handling edge cases and optionally consolidating genres.
         
-        # Acoustic features
-        df['acoustic_energy_ratio'] = df['acousticness'] / (df['energy'] + 1e-8)
-        df['acoustic_valence_ratio'] = df['acousticness'] / (df['valence'] + 1e-8)
+        Args:
+            df: Input DataFrame
+            consolidate_genres: Whether to consolidate rare genres into 'Other'
+            
+        Returns:
+            Prepared DataFrame
+        """
+        # Handle missing values
+        df = self._handle_missing_values(df)
         
-        # Dance-related features
-        df['dance_energy_ratio'] = df['danceability'] / (df['energy'] + 1e-8)
-        df['dance_tempo_ratio'] = df['danceability'] / (df['tempo'] + 1e-8)
-        
-        # Normalize duration
-        df['duration_normalized'] = (df['duration_ms'] - df['duration_ms'].mean()) / df['duration_ms'].std()
-        
-        # Create interaction terms
-        df['speechiness_instrumental_ratio'] = df['speechiness'] / (df['instrumentalness'] + 1e-8)
-        df['liveness_energy_product'] = df['liveness'] * df['energy']
-        
-        # Binned features
-        df['tempo_bin'] = pd.qcut(df['tempo'], q=5, labels=['very_slow', 'slow', 'medium', 'fast', 'very_fast'])
-        df['energy_bin'] = pd.qcut(df['energy'], q=5, labels=['very_low', 'low', 'medium', 'high', 'very_high'])
+        # Consolidate genres if requested
+        if consolidate_genres:
+            df = self._consolidate_rare_genres(df)
+            
+        # Create genre mapping
+        unique_genres = df['genre'].unique()
+        self.genre_mapping = {genre: idx for idx, genre in enumerate(sorted(unique_genres))}
         
         return df
         
-    except Exception as e:
-        print(f"Error in feature engineering: {str(e)}")
+    def _handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Handle missing values in the dataset.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            DataFrame with handled missing values
+        """
+        numeric_features = df.select_dtypes(include=[np.number]).columns
+        
+        # For numeric features, fill missing values with median
+        df[numeric_features] = df[numeric_features].fillna(df[numeric_features].median())
+        
+        # For categorical features (including genre), fill with mode
+        categorical_features = df.select_dtypes(exclude=[np.number]).columns
+        df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+        
         return df
+        
+    def _consolidate_rare_genres(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Consolidate genres with few samples into an 'Other' category.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            DataFrame with consolidated genres
+        """
+        genre_counts = df['genre'].value_counts()
+        rare_genres = genre_counts[genre_counts < self.min_samples_per_genre].index
+        
+        if not rare_genres.empty:
+            logger.info(f"Consolidating {len(rare_genres)} rare genres into 'Other'")
+            df.loc[df['genre'].isin(rare_genres), 'genre'] = 'Other'
+            
+        return df
+        
+    def split_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        """
+        Split data into training and testing sets.
+
+        Args:
+            df: Input DataFrame
+
+        Returns:
+            Tuple of (X_train, X_test, y_train, y_test)
+        """
+        # Ensure 'genre' column is present for splitting
+        if 'genre' not in df.columns:
+            raise ValueError("The dataset must contain a 'genre' column for splitting.")
+
+        X = df.drop('genre', axis=1)
+        y = df['genre']
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=self.test_size,
+            random_state=self.random_state,
+            stratify=y
+        )
+
+        logger.info(f"Split data into {len(X_train)} training and {len(X_test)} test samples")
+
+        return X_train, X_test, y_train, y_test
+
+
+    def get_feature_names(self) -> List[str]:
+        """Get list of feature names."""
+        return self.feature_names
+        
+    def get_genre_mapping(self) -> Dict[str, int]:
+        """Get mapping of genres to indices."""
+        return self.genre_mapping
+        
+    def get_data_stats(self) -> Dict:
+        """Get statistics about the loaded data."""
+        return self.data_stats
+        
+    def verify_data_quality(self, df: pd.DataFrame) -> Dict:
+        """
+        Perform quality checks on the data.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            Dictionary containing quality metrics
+        """
+        quality_metrics = {
+            'duplicates': df.duplicated().sum(),
+            'missing_values': df.isnull().sum().to_dict(),
+            'feature_ranges': {
+                feature: {
+                    'min': df[feature].min(),
+                    'max': df[feature].max(),
+                    'mean': df[feature].mean(),
+                    'std': df[feature].std()
+                }
+                for feature in self.feature_names
+                if df[feature].dtype in [np.float64, np.int64]
+            }
+        }
+        
+        return quality_metrics

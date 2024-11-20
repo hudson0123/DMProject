@@ -3,18 +3,27 @@
 <source>directory-structure.txt</source>
 <document_content>
 .
-├── __pycache__
-│   ├── config.cpython-311.pyc
-│   └── config.cpython-313.pyc
 ├── app
 │   ├── __pycache__
 │   │   ├── __init__.cpython-311.pyc
-│   │   ├── __init__.cpython-313.pyc
-│   │   ├── models.cpython-311.pyc
-│   │   ├── models.cpython-313.pyc
-│   │   ├── routes.cpython-311.pyc
-│   │   └── routes.cpython-313.pyc
+│   │   └── routes.cpython-311.pyc
+│   ├── models
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-311.pyc
+│   │   │   ├── base_model.cpython-311.pyc
+│   │   │   ├── decision_tree.cpython-311.pyc
+│   │   │   ├── logistic_regression.cpython-311.pyc
+│   │   │   ├── naive_bayes.cpython-311.pyc
+│   │   │   └── random_forest.cpython-311.pyc
+│   │   ├── __init__.py
+│   │   ├── base_model.py
+│   │   ├── decision_tree.py
+│   │   ├── logistic_regression.py
+│   │   ├── naive_bayes.py
+│   │   └── random_forest.py
 │   ├── static
+│   │   ├── css
+│   │   │   └── styles.css
 │   │   ├── distributions
 │   │   │   ├── Unnamed: 0_dist.png
 │   │   │   ├── acousticness_dist.png
@@ -30,35 +39,48 @@
 │   │   │   ├── tempo_dist.png
 │   │   │   ├── time_signature_dist.png
 │   │   │   └── valence_dist.png
+│   │   ├── js
+│   │   │   └── app.js
+│   │   ├── acousticness_distribution.png
+│   │   ├── confusion_matrix.png
+│   │   ├── correlation_matrix.png
 │   │   ├── correlations.png
+│   │   ├── danceability_distribution.png
+│   │   ├── duration_ms_distribution.png
+│   │   ├── energy_distribution.png
 │   │   ├── feature_distributions.png
 │   │   ├── genre_distribution.png
-│   │   └── styles.css
+│   │   ├── instrumentalness_distribution.png
+│   │   ├── key_distribution.png
+│   │   ├── liveness_distribution.png
+│   │   ├── loudness_distribution.png
+│   │   ├── mode_distribution.png
+│   │   ├── speechiness_distribution.png
+│   │   ├── tempo_distribution.png
+│   │   ├── time_signature_distribution.png
+│   │   └── valence_distribution.png
 │   ├── templates
+│   │   ├── base.html
+│   │   ├── error.html
 │   │   ├── results.html
 │   │   └── settings.html
 │   ├── utils
 │   │   ├── __pycache__
 │   │   │   ├── __init__.cpython-311.pyc
-│   │   │   ├── __init__.cpython-313.pyc
-│   │   │   ├── analysis.cpython-311.pyc
-│   │   │   ├── analysis.cpython-313.pyc
 │   │   │   ├── data_loader.cpython-311.pyc
-│   │   │   ├── data_loader.cpython-313.pyc
-│   │   │   ├── model_utils.cpython-311.pyc
-│   │   │   ├── model_utils.cpython-313.pyc
-│   │   │   ├── visualization.cpython-311.pyc
-│   │   │   └── visualization.cpython-313.pyc
+│   │   │   ├── evaluation.cpython-311.pyc
+│   │   │   ├── preprocessing.cpython-311.pyc
+│   │   │   └── visualization.cpython-311.pyc
 │   │   ├── __init__.py
-│   │   ├── analysis.py
 │   │   ├── data_loader.py
-│   │   ├── model_utils.py
+│   │   ├── evaluation.py
+│   │   ├── preprocessing.py
 │   │   └── visualization.py
 │   ├── __init__.py
-│   ├── models.py
 │   └── routes.py
 ├── data
 │   └── genres_v2.csv
+├── instance
 ├── .gitignore
 ├── Dockerfile
 ├── README.txt
@@ -68,7 +90,7 @@
 ├── main.py
 └── requirements.txt
 
-10 directories, 55 files
+14 directories, 73 files
 </document_content>
 </document>
 <document index="2">
@@ -79,598 +101,2749 @@ class Config:
 </document_content>
 </document>
 <document index="3">
-<source>./app/models.py</source>
-<document_content>
-import numpy as np
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn import tree
-
-# Global configuration
-enable_hyperparam_tuning = False  # This will be updated by the routes
-
-# Define models with consistent random states
-models = {
-    "Multinomial Naive Bayes": MultinomialNB(),
-    "Random Forest": RandomForestClassifier(random_state=42),
-    "Logistic Regression": LogisticRegression(random_state=42, max_iter=1000),
-    "Decision Tree Classifier": tree.DecisionTreeClassifier(random_state=42)
-}
-
-# Define hyperparameter grids
-param_grids = {
-    "Multinomial Naive Bayes": {
-        'alpha': [0.1, 0.5, 1.0, 2.0],
-        'fit_prior': [True, False]
-    },
-    "Random Forest": {
-        'n_estimators': [100, 200, 300],
-        'max_depth': [10, 20, 30, None],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2']
-    },
-    "Logistic Regression": {
-        'C': [0.001, 0.01, 0.1, 1, 10, 100],
-        'penalty': ['l1', 'l2'],
-        'solver': ['liblinear', 'saga']
-    },
-    "Decision Tree Classifier": {
-        'criterion': ['gini', 'entropy'],
-        'max_depth': [5, 10, 20, 30, None],
-        'min_samples_split': [2, 5, 10],
-        'min_samples_leaf': [1, 2, 4],
-        'max_features': ['sqrt', 'log2', None]
-    }
-}</document_content>
-</document>
-<document index="4">
 <source>./app/__init__.py</source>
 <document_content>
 # app/__init__.py
-from flask import Flask
-from config import Config
 
-def create_app(config_class=Config):
-    """Create and configure the Flask application"""
-    app = Flask(__name__)
-    app.config.from_object(config_class)
-    
-    # Initialize extensions here if any
-    
-    # Register blueprints
-    from .routes import home_bp
-    app.register_blueprint(home_bp)
-    
-    return app
-
-# Avoid circular imports by moving these to the end
-from .utils.data_loader import load_and_preprocess_data
-from .utils.model_utils import train_and_evaluate_models
-from .utils.analysis import analyze_dataset, check_data_quality
-from .utils.visualization import save_visualizations
-
-__all__ = [
-    'create_app',
-    'load_and_preprocess_data',
-    'train_and_evaluate_models',
-    'analyze_dataset',
-    'check_data_quality',
-    'save_visualizations'
-]</document_content>
-</document>
-<document index="5">
-<source>./app/utils/model_utils.py</source>
-<document_content>
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score, f1_score,
-    classification_report, cohen_kappa_score, hamming_loss,
-    confusion_matrix, roc_curve, auc
-)
-import numpy as np
-from sklearn.base import clone
-
-def train_and_evaluate_models(X_train, X_test, y_train, y_test):
-    """
-    Trains and evaluates multiple models.
-    """
-    try:
-        from ..models import models, param_grids, enable_hyperparam_tuning
-        results = {}
-        
-        print(f"\nHyperparameter tuning status: {'Enabled' if enable_hyperparam_tuning else 'Disabled'}")
-        
-        for model_name, base_model in models.items():
-            try:
-                print(f"\nTraining {model_name}...")
-                
-                # Clone the base model to avoid modifying the original
-                model = clone(base_model)
-                
-                if enable_hyperparam_tuning:
-                    print(f"Starting hyperparameter search for {model_name}...")
-                    print(f"Parameter grid: {param_grids[model_name]}")
-                    
-                    # Create and fit RandomizedSearchCV
-                    random_search = RandomizedSearchCV(
-                        estimator=model,
-                        param_distributions=param_grids[model_name],
-                        n_iter=20,
-                        cv=5,
-                        verbose=2,
-                        random_state=42,
-                        n_jobs=-1,
-                        scoring='accuracy'
-                    )
-                    
-                    print("Fitting RandomizedSearchCV...")
-                    random_search.fit(X_train, y_train)
-                    
-                    # Get best model and parameters
-                    model = random_search.best_estimator_
-                    print(f"Best parameters found for {model_name}:")
-                    print(random_search.best_params_)
-                    print(f"Best cross-validation score: {random_search.best_score_:.3f}")
-                    
-                else:
-                    print(f"Training {model_name} with default parameters...")
-                    model.fit(X_train, y_train)
-                
-                # Make predictions
-                y_pred = model.predict(X_test)
-                
-                # Calculate metrics
-                metrics = calculate_metrics(model, X_test, y_test, y_pred)
-                
-                # Add hyperparameter tuning results if applicable
-                if enable_hyperparam_tuning:
-                    metrics['best_params'] = random_search.best_params_
-                    metrics['cv_score'] = random_search.best_score_
-                    
-                results[model_name] = metrics
-                
-            except Exception as model_error:
-                print(f"Error training {model_name}: {str(model_error)}")
-                results[model_name] = create_error_metrics()
-        
-        return results
-        
-    except Exception as e:
-        print(f"Error in train_and_evaluate_models: {str(e)}")
-        return {"Error": create_error_metrics()}
-
-def calculate_metrics(model, X_test, y_test, y_pred):
-    """Calculates all metrics for a model."""
-    try:
-        metrics = {
-            "model": model,
-            "best_params": model.get_params(),
-            "accuracy": accuracy_score(y_test, y_pred),
-            "precision_weighted": precision_score(y_test, y_pred, average='weighted', zero_division=0),
-            "recall_weighted": recall_score(y_test, y_pred, average='weighted', zero_division=0),
-            "f1_weighted": f1_score(y_test, y_pred, average='weighted', zero_division=0),
-            "cohen_kappa": cohen_kappa_score(y_test, y_pred),
-            "hamming_loss": hamming_loss(y_test, y_pred),
-            "classification_report": classification_report(y_test, y_pred, output_dict=True, zero_division=0),
-            "confusion_matrix": confusion_matrix(y_test, y_pred)
-        }
-        
-        # Add ROC curve data if model supports predict_proba
-        if hasattr(model, 'predict_proba'):
-            metrics["roc_data"] = calculate_roc_curves(model, X_test, y_test)
-            
-        return metrics
-        
-    except Exception as e:
-        print(f"Error in calculate_metrics: {str(e)}")
-        return create_error_metrics()
-
-def create_error_metrics():
-    """Creates a dictionary of error metrics when model training fails"""
-    return {
-        "model": None,
-        "best_params": "Error during training",
-        "accuracy": 0.0,
-        "precision_weighted": 0.0,
-        "recall_weighted": 0.0,
-        "f1_weighted": 0.0,
-        "cohen_kappa": 0.0,
-        "hamming_loss": 1.0,
-        "classification_report": {
-            "error": {
-                "precision": 0.0,
-                "recall": 0.0,
-                "f1-score": 0.0,
-                "support": 0
-            }
-        },
-        "confusion_matrix": np.zeros((1, 1))
-    }
-
-def calculate_roc_curves(model, X_test, y_test):
-    """Calculates ROC curves for multi-class classification."""
-    try:
-        y_prob = model.predict_proba(X_test)
-        n_classes = y_prob.shape[1]
-        roc_data = {}
-        
-        for i in range(n_classes):
-            fpr, tpr, _ = roc_curve(y_test == i, y_prob[:, i])
-            roc_data[i] = {
-                'fpr': fpr.tolist(),
-                'tpr': tpr.tolist(),
-                'auc': float(auc(fpr, tpr))
-            }
-        
-        return roc_data
-        
-    except Exception as e:
-        print(f"Error in calculate_roc_curves: {str(e)}")
-        return {}</document_content>
-</document>
-<document index="6">
-<source>./app/utils/analysis.py</source>
-<document_content>
-# Configure matplotlib first
 import matplotlib
 matplotlib.use('Agg')
 
-import pandas as pd
+from flask import Flask, current_app
+import click
+from pathlib import Path
+import logging
+from logging.handlers import RotatingFileHandler
+import os
+from typing import Optional
+
+def create_app(config_object: Optional[object] = None) -> Flask:
+    """
+    Flask application factory.
+    
+    Args:
+        config_object: Configuration object (optional)
+        
+    Returns:
+        Configured Flask application
+    """
+    # Create Flask app
+    app = Flask(__name__)
+    
+    # Load default configuration
+    app.config.from_mapping(
+        SECRET_KEY=os.environ.get('SECRET_KEY') or 'dev-key-please-change',
+        DATA_DIR=str(Path('data')),  # Convert to string for config
+        STATIC_DIR=str(Path('app/static')),  # Convert to string for config
+        MAX_CONTENT_LENGTH=16 * 1024 * 1024  # 16MB max file size
+    )
+    
+    # Load additional configuration
+    if config_object is not None:
+        app.config.from_object(config_object)
+        
+    # Ensure the instance folder exists
+    try:
+        os.makedirs(app.instance_path)
+    except OSError:
+        pass
+        
+    # Ensure static and data directories exist
+    Path(app.config['DATA_DIR']).mkdir(parents=True, exist_ok=True)
+    Path(app.config['STATIC_DIR']).mkdir(parents=True, exist_ok=True)
+    
+    # Register blueprints
+    register_blueprints(app)
+    
+    return app
+
+def register_blueprints(app: Flask) -> None:
+    """
+    Register Flask blueprints.
+    
+    Args:
+        app: Flask application instance
+    """
+    # Import blueprints
+    from .routes import home_bp
+    
+    # Register blueprints
+    app.register_blueprint(home_bp)</document_content>
+</document>
+<document index="4">
+<source>./app/utils/evaluation.py</source>
+<document_content>
+# app/utils/evaluation.py
+
+from typing import Dict, Any, Optional, List, Union, Tuple
 import numpy as np
+import pandas as pd
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    confusion_matrix, classification_report, cohen_kappa_score,
+    roc_curve, auc, precision_recall_curve, average_precision_score
+)
+from sklearn.preprocessing import label_binarize
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+import io
+import base64
+from pathlib import Path
 
-def analyze_dataset(df):
+class ModelEvaluator:
     """
-    Performs comprehensive analysis of the dataset.
-    
-    Parameters:
-    df (pandas.DataFrame): Input dataset
-    
-    Returns:
-    dict: Dictionary containing analysis results
+    Comprehensive model evaluation utilities for genre classification.
+    Handles metric calculation, visualization, and error analysis.
     """
-    try:
-        # Basic dataset statistics
-        stats = {
-            "total_records": len(df),
-            "features": len(df.columns),
-            "genres": df['genre'].nunique(),
-            "genre_distribution": df['genre'].value_counts().to_dict(),
-            "missing_values": df.isnull().sum().to_dict(),
-            "feature_stats": df.describe().to_dict()
+    
+    def __init__(self, save_path: Optional[str] = None):
+        """
+        Initialize the evaluator.
+        
+        Args:
+            save_path: Directory to save evaluation artifacts
+        """
+        self.save_path = Path(save_path) if save_path else None
+        if self.save_path:
+            self.save_path.mkdir(parents=True, exist_ok=True)
+            
+    def calculate_metrics(self, y_true: np.ndarray, y_pred: np.ndarray, 
+                         y_prob: Optional[np.ndarray] = None) -> Dict[str, Any]:
+        """
+        Calculate comprehensive classification metrics.
+        
+        Args:
+            y_true: True labels
+            y_pred: Predicted labels
+            y_prob: Prediction probabilities (optional)
+            
+        Returns:
+            Dictionary containing various metrics
+        """
+        metrics = {
+            "accuracy": accuracy_score(y_true, y_pred),
+            "precision_weighted": precision_score(y_true, y_pred, average='weighted'),
+            "recall_weighted": recall_score(y_true, y_pred, average='weighted'),
+            "f1_weighted": f1_score(y_true, y_pred, average='weighted'),
+            "cohen_kappa": cohen_kappa_score(y_true, y_pred),
+            "confusion_matrix": confusion_matrix(y_true, y_pred),
+            "classification_report": classification_report(y_true, y_pred, output_dict=True)
         }
         
-        # Check for class imbalance
-        genre_counts = df['genre'].value_counts()
-        stats["imbalance_ratio"] = genre_counts.max() / genre_counts.min()
+        # Calculate per-class metrics
+        unique_classes = np.unique(y_true)
+        per_class_metrics = {}
         
-        # Feature correlations for numerical columns
-        numerical_cols = df.select_dtypes(include=['float64', 'int64']).columns
-        stats["correlations"] = df[numerical_cols].corr()
+        for cls in unique_classes:
+            cls_mask = y_true == cls
+            per_class_metrics[cls] = {
+                "precision": precision_score(y_true == cls, y_pred == cls),
+                "recall": recall_score(y_true == cls, y_pred == cls),
+                "f1": f1_score(y_true == cls, y_pred == cls),
+                "support": np.sum(cls_mask)
+            }
+            
+            # Add ROC and PR curves if probabilities are available
+            if y_prob is not None:
+                cls_idx = list(unique_classes).index(cls)
+                cls_prob = y_prob[:, cls_idx]
+                
+                # ROC curve
+                fpr, tpr, _ = roc_curve(y_true == cls, cls_prob)
+                per_class_metrics[cls]["roc_auc"] = auc(fpr, tpr)
+                per_class_metrics[cls]["roc_curve"] = {"fpr": fpr, "tpr": tpr}
+                
+                # PR curve
+                precision, recall, _ = precision_recall_curve(y_true == cls, cls_prob)
+                per_class_metrics[cls]["avg_precision"] = average_precision_score(
+                    y_true == cls, cls_prob
+                )
+                per_class_metrics[cls]["pr_curve"] = {
+                    "precision": precision, "recall": recall
+                }
         
-        # Generate and save visualizations
-        from .visualization import save_visualizations
-        save_visualizations(df, stats)
+        metrics["per_class"] = per_class_metrics
         
-        return stats
+        return metrics
         
-    except Exception as e:
-        print(f"Error in analyze_dataset: {str(e)}")
-        raise
-
-def check_data_quality(df):
-    """
-    Performs data quality checks.
-    
-    Parameters:
-    df (pandas.DataFrame): Input dataset
-    
-    Returns:
-    dict: Dictionary containing quality check results
-    """
-    try:
-        quality_checks = {
-            "duplicates": df.duplicated().sum(),
-            "missing_values": df.isnull().sum().to_dict(),
-            "feature_ranges": {
-                col: {
-                    "min": df[col].min(), 
-                    "max": df[col].max()
-                } 
-                for col in df.select_dtypes(include=['float64', 'int64']).columns
-            },
-            "outliers": {}
+    def analyze_errors(self, y_true: np.ndarray, y_pred: np.ndarray, 
+                      X: np.ndarray, feature_names: List[str]) -> Dict[str, Any]:
+        """
+        Analyze prediction errors to identify patterns.
+        
+        Args:
+            y_true: True labels
+            y_pred: Predicted labels
+            X: Feature matrix
+            feature_names: Names of features
+            
+        Returns:
+            Dictionary containing error analysis
+        """
+        error_mask = y_true != y_pred
+        error_indices = np.where(error_mask)[0]
+        
+        error_analysis = {
+            "total_errors": np.sum(error_mask),
+            "error_rate": np.mean(error_mask),
+            "error_distribution": {}
         }
         
-        # Check for outliers using IQR method
-        for col in df.select_dtypes(include=['float64', 'int64']).columns:
-            Q1 = df[col].quantile(0.25)
-            Q3 = df[col].quantile(0.75)
-            IQR = Q3 - Q1
-            outliers = ((df[col] < (Q1 - 1.5 * IQR)) | (df[col] > (Q3 + 1.5 * IQR))).sum()
-            quality_checks["outliers"][col] = outliers
+        # Analyze misclassification patterns
+        for true_label in np.unique(y_true):
+            true_mask = y_true == true_label
+            error_analysis["error_distribution"][true_label] = {
+                "total": np.sum(true_mask & error_mask),
+                "misclassified_as": dict(zip(
+                    *np.unique(y_pred[true_mask & error_mask], return_counts=True)
+                ))
+            }
+            
+        # Analyze feature distributions for errors
+        error_feature_stats = {}
+        for i, feature in enumerate(feature_names):
+            error_feature_stats[feature] = {
+                "mean_error": np.mean(X[error_mask, i]),
+                "std_error": np.std(X[error_mask, i]),
+                "mean_correct": np.mean(X[~error_mask, i]),
+                "std_correct": np.std(X[~error_mask, i])
+            }
+            
+        error_analysis["feature_statistics"] = error_feature_stats
         
-        return quality_checks
+        return error_analysis
         
-    except Exception as e:
-        print(f"Error in check_data_quality: {str(e)}")
-        raise</document_content>
-</document>
-<document index="7">
-<source>./app/utils/data_loader.py</source>
-<document_content>
-import pandas as pd
-import numpy as np
-import scipy.sparse
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from imblearn.over_sampling import SMOTE
-
-def load_and_preprocess_data(filename, use_smote=False):
-    """
-    Loads data from a CSV file, analyzes it, and preprocesses it for model training.
-    """
-    try:
-        # Load data
-        data_path = f"data/{filename}"
-        df = pd.read_csv(data_path, low_memory=False)
+    def plot_confusion_matrix(self, conf_matrix: np.ndarray, 
+                            labels: List[str]) -> str:
+        """
+        Create and save confusion matrix visualization.
         
-        # Drop unwanted columns
-        df = df.drop(columns=[col for col in df.columns if 'Unnamed' in col], errors='ignore')
-        df = df.drop([
-            "type", "id", "uri", "track_href", "analysis_url", "song_name", 
-            "title"
-        ], axis=1)
+        Args:
+            conf_matrix: Confusion matrix
+            labels: Class labels
+            
+        Returns:
+            Base64 encoded PNG image
+        """
+        plt.figure(figsize=(10, 8))
+        sns.heatmap(
+            conf_matrix,
+            annot=True,
+            fmt='d',
+            cmap='YlOrRd',
+            xticklabels=labels,
+            yticklabels=labels
+        )
+        plt.title('Confusion Matrix')
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
         
-        # Store original analysis
-        from .analysis import analyze_dataset, check_data_quality
-        original_analysis = analyze_dataset(df.copy())
-        quality_checks = check_data_quality(df.copy())
-        original_analysis['quality_checks'] = quality_checks
+        # Save plot
+        buf = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(buf, format='png', dpi=300)
+        plt.close()
         
-        # Separate features and target
-        X = df.drop(['genre'], axis=1)
-        y = df['genre']
+        # Convert to base64
+        buf.seek(0)
+        img_str = base64.b64encode(buf.getvalue()).decode()
+        buf.close()
         
-        # Initial train-test split
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
+        return img_str
+        
+    def plot_roc_curves(self, metrics: Dict[str, Any]) -> str:
+        """
+        Create and save ROC curves for all classes.
+        
+        Args:
+            metrics: Metrics dictionary containing ROC curve data
+            
+        Returns:
+            Base64 encoded PNG image
+        """
+        plt.figure(figsize=(10, 8))
+        
+        for class_name, class_metrics in metrics["per_class"].items():
+            if "roc_curve" in class_metrics:
+                fpr = class_metrics["roc_curve"]["fpr"]
+                tpr = class_metrics["roc_curve"]["tpr"]
+                roc_auc = class_metrics["roc_auc"]
+                
+                plt.plot(
+                    fpr, tpr,
+                    label=f'{class_name} (AUC = {roc_auc:.2f})'
+                )
+                
+        plt.plot([0, 1], [0, 1], 'k--')
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        plt.title('ROC Curves')
+        plt.legend(loc="lower right")
+        
+        # Save plot
+        buf = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(buf, format='png', dpi=300)
+        plt.close()
+        
+        # Convert to base64
+        buf.seek(0)
+        img_str = base64.b64encode(buf.getvalue()).decode()
+        buf.close()
+        
+        return img_str
+        
+    def generate_report(self, metrics: Dict[str, Any], 
+                       error_analysis: Optional[Dict[str, Any]] = None) -> str:
+        """
+        Generate a comprehensive evaluation report in HTML format.
+        
+        Args:
+            metrics: Model evaluation metrics
+            error_analysis: Error analysis results (optional)
+            
+        Returns:
+            HTML formatted report
+        """
+        html = """
+        <div class="evaluation-report">
+            <h2>Model Evaluation Report</h2>
+            
+            <div class="metrics-summary">
+                <h3>Overall Metrics</h3>
+                <ul>
+                    <li>Accuracy: {:.3f}</li>
+                    <li>Weighted Precision: {:.3f}</li>
+                    <li>Weighted Recall: {:.3f}</li>
+                    <li>Weighted F1: {:.3f}</li>
+                    <li>Cohen's Kappa: {:.3f}</li>
+                </ul>
+            </div>
+        """.format(
+            metrics["accuracy"],
+            metrics["precision_weighted"],
+            metrics["recall_weighted"],
+            metrics["f1_weighted"],
+            metrics["cohen_kappa"]
         )
         
-        # Create preprocessing pipeline
-        numerical_features = X.select_dtypes(include=['float64', 'int64']).columns
-        categorical_features = X.select_dtypes(include=['object']).columns
+        # Add per-class metrics
+        html += """
+            <div class="per-class-metrics">
+                <h3>Per-Class Performance</h3>
+                <table>
+                    <tr>
+                        <th>Class</th>
+                        <th>Precision</th>
+                        <th>Recall</th>
+                        <th>F1</th>
+                        <th>Support</th>
+                    </tr>
+        """
         
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', Pipeline([
-                    ('imputer', SimpleImputer(strategy='median')),
-                    ('scaler', MinMaxScaler())
-                ]), numerical_features),
-                ('cat', Pipeline([
-                    ('imputer', SimpleImputer(strategy='constant', fill_value='missing')),
-                    ('encoder', OneHotEncoder(handle_unknown='ignore'))
-                ]), categorical_features)
-            ])
-        
-        # Fit and transform the training data
-        X_train_processed = preprocessor.fit_transform(X_train)
-        X_test_processed = preprocessor.transform(X_test)
-        
-        if use_smote:
-            print("\nApplying SMOTE...")
-            print("\nClass distribution before SMOTE:")
-            print(y_train.value_counts())
+        for cls, cls_metrics in metrics["per_class"].items():
+            html += """
+                <tr>
+                    <td>{}</td>
+                    <td>{:.3f}</td>
+                    <td>{:.3f}</td>
+                    <td>{:.3f}</td>
+                    <td>{}</td>
+                </tr>
+            """.format(
+                cls,
+                cls_metrics["precision"],
+                cls_metrics["recall"],
+                cls_metrics["f1"],
+                cls_metrics["support"]
+            )
             
-            # Apply SMOTE
-            smote = SMOTE(random_state=42)
-            X_train_processed, y_train = smote.fit_resample(X_train_processed, y_train)
+        html += "</table></div>"
+        
+        # Add error analysis if available
+        if error_analysis:
+            html += """
+                <div class="error-analysis">
+                    <h3>Error Analysis</h3>
+                    <p>Total Errors: {}</p>
+                    <p>Error Rate: {:.2%}</p>
+                </div>
+            """.format(
+                error_analysis["total_errors"],
+                error_analysis["error_rate"]
+            )
             
-            # Convert sparse matrix back to dense for analysis if needed
-            if scipy.sparse.issparse(X_train_processed):
-                X_train_dense = X_train_processed.toarray()
-            else:
-                X_train_dense = X_train_processed
+        html += "</div>"
+        
+        return html
+
+    def save_evaluation_artifacts(self, metrics: Dict[str, Any], 
+                                error_analysis: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Save all evaluation artifacts to disk.
+        
+        Args:
+            metrics: Model evaluation metrics
+            error_analysis: Error analysis results (optional)
+        """
+        if not self.save_path:
+            return
+            
+        # Save metrics as JSON
+        import json
+        metrics_file = self.save_path / 'metrics.json'
+        with open(metrics_file, 'w') as f:
+            json.dump(metrics, f, indent=2)
+            
+        # Save visualizations
+        if 'confusion_matrix' in metrics:
+            conf_matrix_img = self.plot_confusion_matrix(
+                metrics['confusion_matrix'],
+                list(metrics['per_class'].keys())
+            )
+            with open(self.save_path / 'confusion_matrix.png', 'wb') as f:
+                f.write(base64.b64decode(conf_matrix_img))
                 
-            # Create a DataFrame with the SMOTE-processed data for analysis
-            columns = numerical_features.tolist()  # Get original feature names
-            smote_df = pd.DataFrame(X_train_dense, columns=columns)
-            smote_df['genre'] = y_train
+        # Save ROC curves
+        roc_img = self.plot_roc_curves(metrics)
+        with open(self.save_path / 'roc_curves.png', 'wb') as f:
+            f.write(base64.b64decode(roc_img))
             
-            # Perform analysis on SMOTE-processed data
-            analysis_results = analyze_dataset(smote_df)
-            analysis_results['quality_checks'] = quality_checks  # Keep original quality checks
-            
-            print("\nClass distribution after SMOTE:")
-            print(pd.Series(y_train).value_counts())
-        else:
-            analysis_results = original_analysis
-        
-        # Store distribution info
-        analysis_results['original_class_distribution'] = y_train.value_counts().to_dict()
-        if use_smote:
-            analysis_results['smote_class_distribution'] = pd.Series(y_train).value_counts().to_dict()
-        analysis_results['smote_applied'] = use_smote
-        
-        return X_train_processed, X_test_processed, y_train, y_test, analysis_results
-        
-    except Exception as e:
-        print(f"Error in load_and_preprocess_data: {str(e)}")
-        raise</document_content>
+        # Save HTML report
+        report = self.generate_report(metrics, error_analysis)
+        with open(self.save_path / 'evaluation_report.html', 'w') as f:
+            f.write(report)</document_content>
 </document>
-<document index="8">
+<document index="5">
+<source>./app/utils/data_loader.py</source>
+<document_content>
+# app/utils/data_loader.py
+
+from typing import Dict, Tuple, Optional, List, Union
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from pathlib import Path
+import logging
+
+logger = logging.getLogger(__name__)
+
+class DataLoader:
+    """
+    Handles loading and initial preparation of music genre data.
+    Provides functionality for data loading, validation, and splitting.
+    """
+    
+    # Columns that should be dropped as they're not useful for prediction
+    COLUMNS_TO_DROP = [
+        "type", "id", "uri", "track_href", "analysis_url",
+        "song_name", "title", "Unnamed: 0"
+    ]
+    
+    # Required columns for genre classification
+    REQUIRED_COLUMNS = [
+        "danceability", "energy", "key", "loudness", "mode",
+        "speechiness", "acousticness", "instrumentalness",
+        "liveness", "valence", "tempo", "duration_ms",
+        "time_signature", "genre"
+    ]
+    
+    def __init__(
+        self,
+        data_dir: Union[str, Path],
+        test_size: float = 0.2,
+        random_state: int = 42,
+        min_samples_per_genre: int = 50
+    ):
+        """
+        Initialize the data loader.
+        
+        Args:
+            data_dir: Directory containing the dataset
+            test_size: Proportion of data to use for testing
+            random_state: Random seed for reproducibility
+            min_samples_per_genre: Minimum samples required per genre
+        """
+        self.data_dir = Path(data_dir)
+        self.test_size = test_size
+        self.random_state = random_state
+        self.min_samples_per_genre = min_samples_per_genre
+        
+        # State tracking
+        self.data_stats: Dict = {}
+        self.genre_mapping: Dict[str, int] = {}
+        self.feature_names: List[str] = []
+        
+    def load_data(self, filename: str) -> pd.DataFrame:
+        """
+        Load data from file and perform initial cleaning.
+
+        Args:
+            filename: Name of the data file
+
+        Returns:
+            Cleaned DataFrame
+
+        Raises:
+            FileNotFoundError: If the data file doesn't exist
+            ValueError: If required columns are missing
+        """
+        file_path = self.data_dir / filename
+        if not file_path.exists():
+            raise FileNotFoundError(f"Data file not found: {file_path}")
+
+        # Load data
+        df = pd.read_csv(file_path, low_memory=False)
+        logger.info(f"Loaded {len(df)} rows from {filename}")
+
+        # Validate required columns
+        missing_cols = set(self.REQUIRED_COLUMNS) - set(df.columns)
+        if missing_cols:
+            raise ValueError(f"Missing required columns: {missing_cols}")
+
+        # Remove unnecessary columns
+        cols_to_drop = [col for col in self.COLUMNS_TO_DROP if col in df.columns]
+        df = df.drop(columns=cols_to_drop)
+
+        # Store feature names
+        self.feature_names = [col for col in df.columns if col != 'genre']
+
+        # Calculate and store data statistics
+        self._calculate_data_stats(df)
+
+        return df
+
+
+    def _calculate_data_stats(self, df: pd.DataFrame) -> None:
+        """
+        Calculate and store various statistics about the dataset.
+
+        Args:
+            df: Input DataFrame
+        """
+        self.data_stats = {
+            'total_samples': len(df),
+            'num_features': len(self.feature_names),
+            'missing_values': df.isnull().sum().to_dict(),
+            'numeric_features': df.select_dtypes(include=[np.number]).columns.tolist(),
+            'categorical_features': df.select_dtypes(exclude=[np.number]).columns.tolist(),
+        }
+
+        # Ensure genre distribution is calculated for training insights
+        if 'genre' in df.columns and not df['genre'].isnull().all():
+            self.data_stats['genre_distribution'] = df['genre'].value_counts().to_dict()
+        else:
+            logger.warning("The 'genre' column is missing or contains no valid data.")
+            self.data_stats['genre_distribution'] = {}
+
+        logger.info(f"Data statistics calculated: {self.data_stats}")
+
+
+
+
+        
+    def prepare_data(self, df: pd.DataFrame, consolidate_genres: bool = True) -> pd.DataFrame:
+        """
+        Prepare data for training by handling edge cases and optionally consolidating genres.
+        
+        Args:
+            df: Input DataFrame
+            consolidate_genres: Whether to consolidate rare genres into 'Other'
+            
+        Returns:
+            Prepared DataFrame
+        """
+        # Handle missing values
+        df = self._handle_missing_values(df)
+        
+        # Consolidate genres if requested
+        if consolidate_genres:
+            df = self._consolidate_rare_genres(df)
+            
+        # Create genre mapping
+        unique_genres = df['genre'].unique()
+        self.genre_mapping = {genre: idx for idx, genre in enumerate(sorted(unique_genres))}
+        
+        return df
+        
+    def _handle_missing_values(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Handle missing values in the dataset.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            DataFrame with handled missing values
+        """
+        numeric_features = df.select_dtypes(include=[np.number]).columns
+        
+        # For numeric features, fill missing values with median
+        df[numeric_features] = df[numeric_features].fillna(df[numeric_features].median())
+        
+        # For categorical features (including genre), fill with mode
+        categorical_features = df.select_dtypes(exclude=[np.number]).columns
+        df[categorical_features] = df[categorical_features].fillna(df[categorical_features].mode().iloc[0])
+        
+        return df
+        
+    def _consolidate_rare_genres(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Consolidate genres with few samples into an 'Other' category.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            DataFrame with consolidated genres
+        """
+        genre_counts = df['genre'].value_counts()
+        rare_genres = genre_counts[genre_counts < self.min_samples_per_genre].index
+        
+        if not rare_genres.empty:
+            logger.info(f"Consolidating {len(rare_genres)} rare genres into 'Other'")
+            df.loc[df['genre'].isin(rare_genres), 'genre'] = 'Other'
+            
+        return df
+        
+    def split_data(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.Series]:
+        """
+        Split data into training and testing sets.
+
+        Args:
+            df: Input DataFrame
+
+        Returns:
+            Tuple of (X_train, X_test, y_train, y_test)
+        """
+        # Ensure 'genre' column is present for splitting
+        if 'genre' not in df.columns:
+            raise ValueError("The dataset must contain a 'genre' column for splitting.")
+
+        X = df.drop('genre', axis=1)
+        y = df['genre']
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y,
+            test_size=self.test_size,
+            random_state=self.random_state,
+            stratify=y
+        )
+
+        logger.info(f"Split data into {len(X_train)} training and {len(X_test)} test samples")
+
+        return X_train, X_test, y_train, y_test
+
+
+    def get_feature_names(self) -> List[str]:
+        """Get list of feature names."""
+        return self.feature_names
+        
+    def get_genre_mapping(self) -> Dict[str, int]:
+        """Get mapping of genres to indices."""
+        return self.genre_mapping
+        
+    def get_data_stats(self) -> Dict:
+        """Get statistics about the loaded data."""
+        return self.data_stats
+        
+    def verify_data_quality(self, df: pd.DataFrame) -> Dict:
+        """
+        Perform quality checks on the data.
+        
+        Args:
+            df: Input DataFrame
+            
+        Returns:
+            Dictionary containing quality metrics
+        """
+        quality_metrics = {
+            'duplicates': df.duplicated().sum(),
+            'missing_values': df.isnull().sum().to_dict(),
+            'feature_ranges': {
+                feature: {
+                    'min': df[feature].min(),
+                    'max': df[feature].max(),
+                    'mean': df[feature].mean(),
+                    'std': df[feature].std()
+                }
+                for feature in self.feature_names
+                if df[feature].dtype in [np.float64, np.int64]
+            }
+        }
+        
+        return quality_metrics</document_content>
+</document>
+<document index="6">
 <source>./app/utils/__init__.py</source>
 <document_content>
-from .data_loader import load_and_preprocess_data
-from .model_utils import train_and_evaluate_models
-from .analysis import analyze_dataset, check_data_quality
-from .visualization import save_visualizations
+# app/utils/__init__.py
+
+from typing import Dict, Tuple
+import numpy as np
+import pandas as pd
+from .data_loader import DataLoader
+from .preprocessing import DataPreprocessor
+from .evaluation import ModelEvaluator
+from .visualization import Visualizer
 
 __all__ = [
-    'load_and_preprocess_data',
-    'train_and_evaluate_models',
-    'analyze_dataset',
-    'check_data_quality',
-    'save_visualizations'
-]</document_content>
+    'DataLoader',
+    'DataPreprocessor',
+    'ModelEvaluator',
+    'Visualizer'
+]
+
+# Version of the utils package
+__version__ = '1.0.0'
+
+# Package metadata
+__author__ = "Jackson Davis & Hudson O'Donnell"
+__description__ = 'Utility modules for music genre classification'
+
+def get_version() -> str:
+    """Returns the version of the utils package."""
+    return __version__
+
+def create_pipeline(
+    data_dir: str,
+    save_dir: str = None,
+    test_size: float = 0.2,
+    random_state: int = 42
+) -> Tuple[DataLoader, DataPreprocessor, ModelEvaluator, Visualizer]:
+    """
+    Create a complete data processing pipeline.
+    
+    Args:
+        data_dir: Directory containing the dataset
+        save_dir: Directory to save outputs (optional)
+        test_size: Proportion of data for testing
+        random_state: Random seed for reproducibility
+        
+    Returns:
+        Tuple of (DataLoader, DataPreprocessor, ModelEvaluator, Visualizer)
+    """
+    data_loader = DataLoader(
+        data_dir=data_dir,
+        test_size=test_size,
+        random_state=random_state
+    )
+    
+    preprocessor = DataPreprocessor(
+        scaler_type='standard',
+        handle_outliers=True,
+        handle_missing=True
+    )
+    
+    evaluator = ModelEvaluator(save_path=save_dir)
+    
+    visualizer = Visualizer(save_dir=save_dir)
+    
+    return data_loader, preprocessor, evaluator, visualizer
+
+def load_and_prepare_data(
+    data_loader: DataLoader,
+    preprocessor: DataPreprocessor,
+    filename: str,
+    consolidate_genres: bool = True
+) -> Tuple[np.ndarray, np.ndarray, pd.Series, pd.Series]:
+    """
+    Load and prepare data using the provided components.
+    
+    Args:
+        data_loader: Initialized DataLoader instance
+        preprocessor: Initialized DataPreprocessor instance
+        filename: Name of the data file
+        consolidate_genres: Whether to consolidate rare genres
+        
+    Returns:
+        Tuple of (X_train, X_test, y_train, y_test)
+    """
+    df = data_loader.load_data(filename)
+    df = data_loader.prepare_data(df, consolidate_genres=consolidate_genres)
+    X_train, X_test, y_train, y_test = data_loader.split_data(df)
+    
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+    
+    return X_train_processed, X_test_processed, y_train, y_test
+
+def get_initial_data_insights(
+    data_loader: DataLoader,
+    visualizer: Visualizer,
+    df: pd.DataFrame
+) -> Dict:
+    """
+    Generate initial insights about the dataset.
+    
+    Args:
+        data_loader: Initialized DataLoader instance
+        visualizer: Initialized Visualizer instance
+        df: Loaded DataFrame
+        
+    Returns:
+        Dictionary containing data insights and visualizations
+    """
+    stats = data_loader.get_data_stats()
+    
+    genre_dist = visualizer.plot_genre_distribution(stats['genre_distribution'])
+    feature_plots = visualizer.plot_feature_distributions(
+        df, 
+        data_loader.get_feature_names()
+    )
+    correlation_plot = visualizer.plot_correlation_matrix(
+        df,
+        data_loader.get_feature_names()
+    )
+    
+    insights = {
+        'statistics': stats,
+        'visualizations': {
+            'genre_distribution': genre_dist,
+            'feature_distributions': feature_plots,
+            'correlation_matrix': correlation_plot
+        },
+        'data_quality': data_loader.verify_data_quality(df)
+    }
+    
+    return insights</document_content>
 </document>
-<document index="9">
+<document index="7">
 <source>./app/utils/visualization.py</source>
 <document_content>
+# app/utils/visualization.py
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
+from typing import Dict, List, Optional, Union, Tuple
+import numpy as np
+import pandas as pd
+from pathlib import Path
+import io
+import base64
+from sklearn.metrics import confusion_matrix
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import logging
 
-def save_visualizations(df, stats):
+logger = logging.getLogger(__name__)
+
+
+class Visualizer:
     """
-    Generates and saves visualizations.
+    Handles visualization generation for music genre classification.
+    Creates and saves various plots for data analysis and model evaluation.
+    """
     
-    Parameters:
-    df (pandas.DataFrame): Input dataset
-    stats (dict): Statistics dictionary from analyze_dataset
-    """
-    try:
-        # Create static directory if it doesn't exist
-        if not os.path.exists('app/static'):
-            os.makedirs('app/static')
+    def __init__(self, save_dir: Optional[Union[str, Path]] = None):
+        """
+        Initialize visualizer.
         
-        # Set style for all plots
+        Args:
+            save_dir: Directory to save visualizations (optional)
+        """
+        self.save_dir = Path(save_dir) if save_dir else None
+        if self.save_dir:
+            self.save_dir.mkdir(parents=True, exist_ok=True)
+            
+        # Set style
         plt.style.use('seaborn')
         
-        # Genre distribution plot
-        create_genre_distribution(df)
+    def _save_plot(self, name: str) -> str:
+        """
+        Save plot to file and return base64 string.
         
-        # Correlation heatmap
-        create_correlation_heatmap(df, stats)
-        
-        # Feature distributions
-        create_feature_distributions(df)
-        
-    except Exception as e:
-        print(f"Error in save_visualizations: {str(e)}")
-        plt.close('all')  # Make sure to close all figures in case of error
-        raise
-
-def create_feature_distributions(df):
-    """Creates and saves individual feature distribution plots."""
-    try:
-        # Define the numeric features we want to plot
-        features_to_plot = [
-            'danceability', 'energy', 'key', 'loudness', 
-            'speechiness', 'acousticness', 'instrumentalness',
-            'liveness', 'valence', 'tempo', 'duration_ms'
-        ]
-        
-        # Filter features that actually exist in the dataframe
-        features_to_plot = [f for f in features_to_plot if f in df.columns]
-        
-        # Create directory for individual plots if it doesn't exist
-        dist_dir = 'app/static/distributions'
-        os.makedirs(dist_dir, exist_ok=True)
-        
-        # Create individual plots
-        for col in features_to_plot:
-            plt.figure(figsize=(10, 10))
+        Args:
+            name: Name of the plot
             
-            # Create the distribution plot with improved styling
-            sns.histplot(data=df, x=col, kde=True, color='#4A90E2')
-            
-            # Customize the plot
-            plt.title(col.replace('_', ' ').title(), fontsize=16, pad=20)
-            plt.xlabel(col.replace('_', ' ').title(), fontsize=14)
-            plt.ylabel('Count', fontsize=14)
-            plt.xticks(fontsize=12, rotation=45)
-            plt.yticks(fontsize=12)
-            
-            # Add grid and style improvements
-            plt.grid(True, alpha=0.3, linestyle='--')
-            plt.gca().spines['top'].set_visible(False)
-            plt.gca().spines['right'].set_visible(False)
-            
-            # Improve plot background
-            plt.gca().set_facecolor('#f8f9fa')
-            plt.gcf().set_facecolor('white')
-            
-            # Add padding to prevent label cutoff
-            plt.tight_layout(pad=2.0)
-            
-            # Save individual plot with high resolution
-            plt.savefig(f'{dist_dir}/{col}_dist.png', 
-                       dpi=150,
-                       bbox_inches='tight',
-                       pad_inches=0.3,
-                       facecolor='white')
-            plt.close()
-            
-    except Exception as e:
-        print(f"Error in create_feature_distributions: {str(e)}")
-        plt.close('all')
-        raise
-
-def create_correlation_heatmap(df, stats):
-    """Creates and saves the correlation heatmap."""
-    try:
-        plt.figure(figsize=(15, 12))  # Increased figure size
-        
-        # Ensure we exclude the Unnamed column and other non-numeric columns
-        df_clean = df.select_dtypes(include=['float64', 'int64'])
-        df_clean = df_clean.drop(['Unnamed: 0'], axis=1, errors='ignore')
-        
-        correlation_matrix = df_clean.corr()
-        
-        # Create heatmap with larger annotations
-        sns.heatmap(correlation_matrix, 
-                   annot=True, 
-                   cmap='coolwarm', 
-                   center=0,
-                   fmt='.2f',
-                   annot_kws={'size': 10})
-        
-        plt.title('Feature Correlations', pad=20)
-        plt.tight_layout()
-        plt.savefig('app/static/correlations.png', dpi=300, bbox_inches='tight')
+        Returns:
+            Base64 encoded string of the plot
+        """
+        # Save to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=300, bbox_inches='tight')
         plt.close()
         
-    except Exception as e:
-        print(f"Error in create_correlation_heatmap: {str(e)}")
-        plt.close('all')
-        raise
+        # Convert to base64
+        buf.seek(0)
+        img_str = base64.b64encode(buf.getvalue()).decode()
+        
+        # Save to file if directory specified
+        if self.save_dir:
+            plt.savefig(self.save_dir / f"{name}.png", dpi=300, bbox_inches='tight')
+            
+        return img_str
+        
+    def plot_genre_distribution(self, genre_counts: Dict[str, int]) -> str:
+        """
+        Create bar plot of genre distribution.
 
-def create_genre_distribution(df):
-    """Creates and saves the genre distribution plot."""
-    try:
-        plt.figure(figsize=(15, 10))  # Increased figure size
-        
-        # Create countplot with rotated labels
-        sns.countplot(data=df, 
-                     y='genre', 
-                     order=df['genre'].value_counts().index)
-        
-        plt.title('Genre Distribution', pad=20)
-        plt.xlabel('Count')
+        Args:
+            genre_counts: Dictionary of genre counts
+
+        Returns:
+            Base64 encoded plot image or an empty string if data is unavailable.
+        """
+        if not genre_counts:
+            logger.warning("No data provided for genre distribution plot.")
+            return ""  # Return empty string for no-data scenarios
+
+        plt.figure(figsize=(12, 6))
+        sns.barplot(x=list(genre_counts.values()), y=list(genre_counts.keys()))
+        plt.title('Genre Distribution')
+        plt.xlabel('Number of Samples')
         plt.ylabel('Genre')
+
+        return self._save_plot('genre_distribution')
+
         
-        plt.tight_layout()
-        plt.savefig('app/static/genre_distribution.png', dpi=300, bbox_inches='tight')
-        plt.close()
+    def plot_feature_distributions(self, df: pd.DataFrame, 
+                                 features: List[str]) -> Dict[str, str]:
+        """
+        Create distribution plots for features.
         
-    except Exception as e:
-        print(f"Error in create_genre_distribution: {str(e)}")
-        plt.close('all')
-        raise</document_content>
+        Args:
+            df: DataFrame containing features
+            features: List of feature names to plot
+            
+        Returns:
+            Dictionary mapping feature names to base64 encoded plots
+        """
+        plots = {}
+        
+        for feature in features:
+            plt.figure(figsize=(8, 6))
+            
+            # Create distribution plot
+            sns.histplot(data=df, x=feature, kde=True)
+            
+            plt.title(f'{feature} Distribution')
+            plt.xlabel(feature)
+            plt.ylabel('Count')
+            
+            plots[feature] = self._save_plot(f'{feature}_distribution')
+            
+        return plots
+        
+    def plot_correlation_matrix(self, df: pd.DataFrame, 
+                              features: List[str]) -> str:
+        """
+        Create correlation matrix heatmap.
+        
+        Args:
+            df: DataFrame containing features
+            features: List of features to include
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(12, 10))
+        
+        # Calculate correlations
+        corr_matrix = df[features].corr()
+        
+        # Create heatmap
+        sns.heatmap(
+            corr_matrix,
+            annot=True,
+            cmap='coolwarm',
+            center=0,
+            fmt='.2f'
+        )
+        
+        plt.title('Feature Correlations')
+        
+        return self._save_plot('correlation_matrix')
+        
+    def plot_confusion_matrix(self, y_true: np.ndarray, y_pred: np.ndarray, 
+                            labels: List[str]) -> str:
+        """
+        Create confusion matrix visualization.
+        
+        Args:
+            y_true: True labels
+            y_pred: Predicted labels
+            labels: Label names
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 8))
+        
+        # Calculate confusion matrix
+        cm = confusion_matrix(y_true, y_pred)
+        
+        # Create heatmap
+        sns.heatmap(
+            cm,
+            annot=True,
+            fmt='d',
+            cmap='Blues',
+            xticklabels=labels,
+            yticklabels=labels
+        )
+        
+        plt.title('Confusion Matrix')
+        plt.ylabel('True Label')
+        plt.xlabel('Predicted Label')
+        
+        return self._save_plot('confusion_matrix')
+        
+    def plot_feature_importance(self, feature_importance: Dict[str, float], 
+                              top_n: int = 10) -> str:
+        """
+        Create feature importance bar plot.
+        
+        Args:
+            feature_importance: Dictionary of feature importance scores
+            top_n: Number of top features to show
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 6))
+        
+        # Sort and select top features
+        sorted_features = dict(sorted(
+            feature_importance.items(),
+            key=lambda x: x[1],
+            reverse=True
+        )[:top_n])
+        
+        # Create bar plot
+        sns.barplot(
+            x=list(sorted_features.values()),
+            y=list(sorted_features.keys())
+        )
+        
+        plt.title(f'Top {top_n} Feature Importance')
+        plt.xlabel('Importance Score')
+        plt.ylabel('Feature')
+        
+        return self._save_plot('feature_importance')
+        
+    def plot_dimension_reduction(self, X: np.ndarray, y: np.ndarray,
+                               method: str = 'pca') -> str:
+        """
+        Create 2D visualization of high-dimensional data.
+        
+        Args:
+            X: Feature matrix
+            y: Labels
+            method: Dimension reduction method ('pca' or 'tsne')
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 8))
+        
+        # Perform dimension reduction
+        if method.lower() == 'pca':
+            reducer = PCA(n_components=2)
+        else:
+            reducer = TSNE(n_components=2, random_state=42)
+            
+        X_reduced = reducer.fit_transform(X)
+        
+        # Create scatter plot
+        scatter = plt.scatter(
+            X_reduced[:, 0],
+            X_reduced[:, 1],
+            c=y,
+            cmap='tab20',
+            alpha=0.6
+        )
+        
+        plt.title(f'{method.upper()} Visualization')
+        plt.xlabel('First Component')
+        plt.ylabel('Second Component')
+        plt.legend(
+            scatter.legend_elements()[0],
+            np.unique(y),
+            title='Genres',
+            bbox_to_anchor=(1.05, 1),
+            loc='upper left'
+        )
+        
+        return self._save_plot(f'{method}_visualization')
+        
+    def plot_learning_curves(self, train_scores: List[float], 
+                           val_scores: List[float], 
+                           train_sizes: List[int]) -> str:
+        """
+        Create learning curve plot.
+        
+        Args:
+            train_scores: List of training scores
+            val_scores: List of validation scores
+            train_sizes: List of training set sizes
+            
+        Returns:
+            Base64 encoded plot image
+        """
+        plt.figure(figsize=(10, 6))
+        
+        plt.plot(train_sizes, train_scores, label='Training Score', marker='o')
+        plt.plot(train_sizes, val_scores, label='Validation Score', marker='o')
+        
+        plt.title('Learning Curves')
+        plt.xlabel('Training Examples')
+        plt.ylabel('Score')
+        plt.legend()
+        plt.grid(True)
+        
+        return self._save_plot('learning_curves')
+        
+    def create_dashboard(self, data_stats: Dict, model_results: Dict) -> str:
+        """
+        Create comprehensive visualization dashboard in HTML.
+        
+        Args:
+            data_stats: Data statistics dictionary
+            model_results: Model evaluation results
+            
+        Returns:
+            HTML string containing dashboard
+        """
+        html = """
+        <div class="dashboard">
+            <style>
+                .dashboard {
+                    font-family: Arial, sans-serif;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }
+                .section {
+                    margin-bottom: 30px;
+                    padding: 20px;
+                    border-radius: 5px;
+                    background-color: #f8f9fa;
+                }
+                .plot-container {
+                    margin: 20px 0;
+                    text-align: center;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+            </style>
+        """
+        
+        # Add data statistics section
+        html += """
+            <div class="section">
+                <h2>Dataset Statistics</h2>
+                <ul>
+        """
+        
+        for key, value in data_stats.items():
+            html += f"<li><strong>{key}:</strong> {value}</li>"
+            
+        html += "</ul></div>"
+        
+        # Add plots
+        for name, plot in model_results.items():
+            if isinstance(plot, str) and plot.startswith('data:image'):
+                html += f"""
+                    <div class="section">
+                        <h2>{name}</h2>
+                        <div class="plot-container">
+                            <img src="{plot}" alt="{name}">
+                        </div>
+                    </div>
+                """
+                
+        html += "</div>"
+        
+        return html</document_content>
+</document>
+<document index="8">
+<source>./app/utils/preprocessing.py</source>
+<document_content>
+# app/utils/preprocessing.py
+
+from typing import Dict, Optional, Tuple, Union, List
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, RobustScaler, PowerTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.decomposition import PCA
+from scipy import stats
+import warnings
+
+class DataPreprocessor:
+    """
+    Centralized preprocessing utilities for music genre classification.
+    Handles common preprocessing tasks that can be used across different models.
+    """
+    
+    def __init__(
+        self,
+        scaler_type: str = 'standard',
+        handle_outliers: bool = True,
+        handle_missing: bool = True,
+        variance_threshold: float = 0.01,
+        correlation_threshold: float = 0.95
+    ):
+        """
+        Initialize preprocessor with specified settings.
+        
+        Args:
+            scaler_type: Type of scaler ('standard', 'robust', or 'power')
+            handle_outliers: Whether to remove outliers
+            handle_missing: Whether to impute missing values
+            variance_threshold: Minimum variance for feature selection
+            correlation_threshold: Threshold for removing correlated features
+        """
+        self.scaler_type = scaler_type
+        self.handle_outliers = handle_outliers
+        self.handle_missing = handle_missing
+        self.variance_threshold = variance_threshold
+        self.correlation_threshold = correlation_threshold
+        
+        # Initialize components
+        self.scaler = self._get_scaler()
+        self.imputer = SimpleImputer(strategy='median') if handle_missing else None
+        
+        # State tracking
+        self.feature_names: Optional[List[str]] = None
+        self.removed_features: List[str] = []
+        self.feature_statistics: Dict[str, Dict[str, float]] = {}
+        
+    def _get_scaler(self) -> Union[StandardScaler, RobustScaler, PowerTransformer]:
+        """Get the appropriate scaler based on settings."""
+        if self.scaler_type == 'robust':
+            return RobustScaler(quantile_range=(25, 75))
+        elif self.scaler_type == 'power':
+            return PowerTransformer(method='yeo-johnson')
+        else:
+            return StandardScaler()
+            
+    def remove_outliers(self, X: np.ndarray, 
+                       method: str = 'iqr') -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Remove outliers using specified method.
+        
+        Args:
+            X: Input features
+            method: Outlier detection method ('iqr', 'zscore', or 'isolation_forest')
+            
+        Returns:
+            Clean data and mask of non-outlier samples
+        """
+        if method == 'iqr':
+            return self._remove_outliers_iqr(X)
+        elif method == 'zscore':
+            return self._remove_outliers_zscore(X)
+        else:
+            raise ValueError(f"Unknown outlier removal method: {method}")
+            
+    def _remove_outliers_iqr(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Remove outliers using IQR method."""
+        q1 = np.percentile(X, 25, axis=0)
+        q3 = np.percentile(X, 75, axis=0)
+        iqr = q3 - q1
+        
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+        
+        outlier_mask = np.all(
+            (X >= lower_bound) & (X <= upper_bound),
+            axis=1
+        )
+        
+        return X[outlier_mask], outlier_mask
+        
+    def _remove_outliers_zscore(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """Remove outliers using Z-score method."""
+        z_scores = stats.zscore(X, axis=0)
+        outlier_mask = np.all(np.abs(z_scores) < 3, axis=1)
+        return X[outlier_mask], outlier_mask
+        
+    def remove_low_variance_features(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Remove features with variance below threshold.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Filtered features and mask of selected features
+        """
+        variances = np.var(X, axis=0)
+        mask = variances > self.variance_threshold
+        
+        if self.feature_names:
+            self.removed_features.extend([
+                name for name, selected in zip(self.feature_names, mask)
+                if not selected
+            ])
+            
+        return X[:, mask], mask
+        
+    def remove_correlated_features(self, X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Remove highly correlated features.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Filtered features and mask of selected features
+        """
+        corr_matrix = np.corrcoef(X.T)
+        mask = np.ones(X.shape[1], dtype=bool)
+        
+        # Find pairs of highly correlated features
+        for i in range(len(corr_matrix)):
+            if mask[i]:
+                # Find features correlated with feature i
+                correlated = np.where(np.abs(corr_matrix[i]) > self.correlation_threshold)[0]
+                # Remove the features with higher mean absolute correlation
+                for j in correlated:
+                    if i != j and mask[j]:
+                        corr_i = np.mean(np.abs(corr_matrix[i]))
+                        corr_j = np.mean(np.abs(corr_matrix[j]))
+                        if corr_j > corr_i:
+                            mask[j] = False
+                            
+        if self.feature_names:
+            self.removed_features.extend([
+                name for name, selected in zip(self.feature_names, mask)
+                if not selected
+            ])
+            
+        return X[:, mask], mask
+        
+    def compute_feature_statistics(self, X: np.ndarray) -> Dict[str, Dict[str, float]]:
+        """
+        Compute various statistics for each feature.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Dictionary of feature statistics
+        """
+        stats_dict = {}
+        
+        for i in range(X.shape[1]):
+            feature_name = self.feature_names[i] if self.feature_names else f'feature_{i}'
+            stats_dict[feature_name] = {
+                'mean': np.mean(X[:, i]),
+                'std': np.std(X[:, i]),
+                'min': np.min(X[:, i]),
+                'max': np.max(X[:, i]),
+                'median': np.median(X[:, i]),
+                'skewness': stats.skew(X[:, i]),
+                'kurtosis': stats.kurtosis(X[:, i])
+            }
+            
+        self.feature_statistics = stats_dict
+        return stats_dict
+        
+    def fit_transform(self, X: Union[np.ndarray, pd.DataFrame], 
+                     compute_stats: bool = True) -> np.ndarray:
+        """
+        Fit preprocessing pipeline and transform data.
+        
+        Args:
+            X: Input features
+            compute_stats: Whether to compute feature statistics
+            
+        Returns:
+            Transformed features
+        """
+        # Store feature names if DataFrame
+        if isinstance(X, pd.DataFrame):
+            self.feature_names = X.columns.tolist()
+            X = X.values
+            
+        # Handle missing values
+        if self.handle_missing and self.imputer:
+            X = self.imputer.fit_transform(X)
+            
+        # Remove outliers
+        if self.handle_outliers:
+            X, outlier_mask = self.remove_outliers(X)
+            
+        # Scale features
+        X = self.scaler.fit_transform(X)
+        
+        # Remove low variance features
+        X, variance_mask = self.remove_low_variance_features(X)
+        
+        # Remove correlated features
+        X, correlation_mask = self.remove_correlated_features(X)
+        
+        # Compute statistics if requested
+        if compute_stats:
+            self.compute_feature_statistics(X)
+            
+        return X
+        
+    def transform(self, X: Union[np.ndarray, pd.DataFrame]) -> np.ndarray:
+        """
+        Transform new data using fitted preprocessing pipeline.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Transformed features
+        """
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        # Handle missing values
+        if self.handle_missing and self.imputer:
+            X = self.imputer.transform(X)
+            
+        # Scale features
+        X = self.scaler.transform(X)
+        
+        return X
+        
+    def get_feature_names(self) -> List[str]:
+        """Get names of features after preprocessing."""
+        if not self.feature_names:
+            # Use the shape from the scaler since we know it's fitted
+            n_features = self.scaler.n_features_in_
+            return [f'feature_{i}' for i in range(n_features)]
+        return [name for name in self.feature_names if name not in self.removed_features]
+        
+    def get_preprocessing_summary(self) -> Dict[str, Union[str, List[str], Dict[str, Dict[str, float]]]]:
+        """
+        Get summary of preprocessing operations.
+        
+        Returns:
+            Dictionary containing preprocessing information:
+            - scaler_type: Type of scaler used
+            - removed_features: List of features removed during preprocessing
+            - feature_statistics: Dictionary of feature statistics
+            - remaining_features: List of features after preprocessing
+        """
+        return {
+            'scaler_type': self.scaler_type,
+            'removed_features': self.removed_features,
+            'feature_statistics': self.feature_statistics,
+            'remaining_features': self.get_feature_names()
+        }</document_content>
+</document>
+<document index="9">
+<source>./app/models/__init__.py</source>
+<document_content>
+# app/models/__init__.py
+
+"""
+Model registry and factory pattern implementation for genre classification models.
+Provides centralized model management and instantiation.
+"""
+
+from typing import Dict, Type, List
+from .base_model import BaseGenreModel
+from .naive_bayes import GaussianNBModel
+from .random_forest import RandomForestModel
+from .logistic_regression import LogisticRegressionModel
+from .decision_tree import DecisionTreeModel
+
+# Registry of available models
+MODEL_REGISTRY: Dict[str, Type[BaseGenreModel]] = {
+    "Gaussian Naive Bayes": GaussianNBModel,
+    "Random Forest": RandomForestModel,
+    "Logistic Regression": LogisticRegressionModel,
+    "Decision Tree": DecisionTreeModel
+}
+
+def get_model(model_name: str) -> BaseGenreModel:
+    """
+    Factory function to create model instances.
+    
+    Args:
+        model_name (str): Name of the model to instantiate
+        
+    Returns:
+        BaseGenreModel: Instance of the requested model
+        
+    Raises:
+        ValueError: If model_name is not found in registry
+    """
+    if model_name not in MODEL_REGISTRY:
+        raise ValueError(
+            f"Model '{model_name}' not found. Available models: {list_available_models()}"
+        )
+    return MODEL_REGISTRY[model_name]()
+
+def list_available_models() -> List[str]:
+    """
+    Returns list of available model names.
+    
+    Returns:
+        List[str]: Names of available models
+    """
+    return list(MODEL_REGISTRY.keys())
+
+def get_model_class(model_name: str) -> Type[BaseGenreModel]:
+    """
+    Get the model class without instantiating it.
+    
+    Args:
+        model_name (str): Name of the model class to retrieve
+        
+    Returns:
+        Type[BaseGenreModel]: The requested model class
+        
+    Raises:
+        ValueError: If model_name is not found in registry
+    """
+    if model_name not in MODEL_REGISTRY:
+        raise ValueError(
+            f"Model '{model_name}' not found. Available models: {list_available_models()}"
+        )
+    return MODEL_REGISTRY[model_name]
+
+# Default models to use if none specified
+DEFAULT_MODELS = [
+    "Random Forest",
+    "Gaussian Naive Bayes",
+    "Logistic Regression",
+    "Decision Tree"
+]</document_content>
 </document>
 <document index="10">
-<source>./app/static/styles.css</source>
+<source>./app/models/base_model.py</source>
 <document_content>
+# app/models/base_model.py
+
+from abc import ABC, abstractmethod
+from typing import Dict, Optional, Any, Tuple, List
+import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, ClassifierMixin
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import (
+    accuracy_score, precision_score, recall_score, f1_score,
+    classification_report, cohen_kappa_score, confusion_matrix
+)
+
+class BaseGenreModel(ABC, BaseEstimator, ClassifierMixin):
+    """
+    Abstract base class for music genre classification models.
+    Implements common functionality and defines interface for specific models.
+    """
+    
+    def __init__(self):
+        """Initialize base model components."""
+        self.model = None
+        self.scaler = StandardScaler()
+        self.label_encoder = LabelEncoder()
+        self.feature_names: Optional[List[str]] = None
+        self.is_fitted = False
+        
+    @abstractmethod
+    def preprocess_data(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Model-specific preprocessing steps. Must be implemented by each model.
+        
+        Args:
+            X: Input features
+            y: Target labels (optional, only provided during training)
+            
+        Returns:
+            Preprocessed features
+        """
+        pass
+        
+    @abstractmethod
+    def get_model_params(self) -> Dict[str, Tuple[str, Any]]:
+        """
+        Returns model-specific parameters for hyperparameter tuning.
+        Must be implemented by each model.
+        
+        Returns:
+            Dictionary of parameter names and their valid ranges/options
+        """
+        pass
+
+    def fit(self, X: np.ndarray, y: np.ndarray) -> 'BaseGenreModel':
+        """
+        Fits the model to the training data.
+        
+        Args:
+            X: Training features
+            y: Target labels
+            
+        Returns:
+            self: The fitted model instance
+        """
+        # Store feature names if available
+        if isinstance(X, pd.DataFrame):
+            self.feature_names = X.columns.tolist()
+            X = X.values
+            
+        # Preprocess the features
+        X_processed = self.preprocess_data(X, y)
+        
+        # Encode labels
+        y_encoded = self.label_encoder.fit_transform(y)
+        
+        # Fit the model
+        self.model.fit(X_processed, y_encoded)
+        self.is_fitted = True
+        
+        return self
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        """
+        Makes predictions on new data.
+        
+        Args:
+            X: Features to predict
+            
+        Returns:
+            Predicted labels
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before making predictions")
+            
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        X_processed = self.preprocess_data(X)
+        y_pred = self.model.predict(X_processed)
+        return self.label_encoder.inverse_transform(y_pred)
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Predicts class probabilities for new data.
+        
+        Args:
+            X: Features to predict probabilities for
+            
+        Returns:
+            Predicted class probabilities
+        """
+        if not hasattr(self.model, 'predict_proba'):
+            raise NotImplementedError(
+                f"{self.__class__.__name__} does not support probability predictions"
+            )
+            
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before predicting probabilities")
+            
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        X_processed = self.preprocess_data(X)
+        return self.model.predict_proba(X_processed)
+
+    def evaluate(self, X: np.ndarray, y: np.ndarray) -> Dict[str, Any]:
+        """
+        Evaluates model performance on test data.
+        
+        Args:
+            X: Test features
+            y: True labels
+            
+        Returns:
+            Dictionary containing various performance metrics
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before evaluation")
+            
+        # Make predictions
+        y_pred = self.predict(X)
+        
+        # Calculate metrics
+        metrics = {
+            "model": self.__class__.__name__,
+            "accuracy": accuracy_score(y, y_pred),
+            "precision_weighted": precision_score(y, y_pred, average='weighted'),
+            "recall_weighted": recall_score(y, y_pred, average='weighted'),
+            "f1_weighted": f1_score(y, y_pred, average='weighted'),
+            "cohen_kappa": cohen_kappa_score(y, y_pred),
+            "confusion_matrix": confusion_matrix(y, y_pred),
+            "classification_report": classification_report(
+                y, y_pred, 
+                output_dict=True
+            )
+        }
+        
+        # Add probability metrics if available
+        if hasattr(self.model, 'predict_proba'):
+            try:
+                y_proba = self.predict_proba(X)
+                metrics["predictions_confidence"] = {
+                    "mean": np.mean(np.max(y_proba, axis=1)),
+                    "std": np.std(np.max(y_proba, axis=1))
+                }
+            except Exception as e:
+                print(f"Warning: Could not compute probability metrics: {str(e)}")
+        
+        return metrics
+
+    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+        """
+        Returns feature importance if the model supports it.
+        
+        Returns:
+            Dictionary mapping feature names to importance scores,
+            or None if feature importance is not supported
+        """
+        if not hasattr(self.model, 'feature_importances_'):
+            return None
+            
+        importances = self.model.feature_importances_
+        
+        if self.feature_names is None:
+            feature_names = [f'feature_{i}' for i in range(len(importances))]
+        else:
+            feature_names = self.feature_names
+            
+        return dict(sorted(
+            zip(feature_names, importances),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+
+    def __str__(self) -> str:
+        """String representation of the model."""
+        return f"{self.__class__.__name__}(fitted={self.is_fitted})"</document_content>
+</document>
+<document index="11">
+<source>./app/models/naive_bayes.py</source>
+<document_content>
+# app/models/naive_bayes.py
+
+from typing import Dict, Optional, Tuple, Any, Union
+import numpy as np
+import pandas as pd
+from sklearn.naive_bayes import GaussianNB
+from sklearn.preprocessing import PowerTransformer, RobustScaler
+from .base_model import BaseGenreModel
+import logging
+logger = logging.getLogger(__name__)
+
+class GaussianNBModel(BaseGenreModel):
+    """
+    Gaussian Naive Bayes implementation for genre classification.
+    Includes specific preprocessing optimized for Naive Bayes assumptions:
+    - Power transformation to make features more Gaussian-like
+    - Robust scaling to handle outliers
+    - Optional feature selection based on variance
+    """
+    
+    def __init__(self, var_smoothing: float = 1e-9, min_variance_percentile: float = 1):
+        """
+        Initialize Gaussian Naive Bayes model.
+        
+        Args:
+            var_smoothing: Portion of the largest variance of all features that is 
+                         added to variances for calculation stability
+            min_variance_percentile: Remove features with variance below this percentile
+        """
+        super().__init__()
+        self.model = GaussianNB(var_smoothing=var_smoothing)
+        self.power_transformer = PowerTransformer(method='yeo-johnson', standardize=False)
+        self.scaler = RobustScaler(quantile_range=(5, 95))
+        self.min_variance_percentile = min_variance_percentile
+        self.feature_mask: Optional[np.ndarray] = None
+        self.feature_variances: Optional[np.ndarray] = None
+        
+    def preprocess_data(self, X: np.ndarray, y: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Preprocess data specifically for Gaussian Naive Bayes:
+        - Apply power transformation to make features more Gaussian-like.
+        - Scale features using robust scaling.
+        - Optionally select features based on variance during training.
+
+        Args:
+            X: Input feature matrix.
+            y: Target labels (only during training, for feature selection).
+
+        Returns:
+            Preprocessed feature matrix.
+        """
+        logger.debug(f"Preprocessing input: X={X.shape}")
+        if y is not None:
+            logger.debug(f"Preprocessing target: {len(y)}")
+            assert len(X) == len(y), f"Mismatch in X and y: {X.shape[0]} vs {len(y)}"
+
+        # During training
+        if y is not None:
+            # Apply power transform to make features more Gaussian-like
+            X_transformed = self.power_transformer.fit_transform(X)
+            logger.debug(f"After power transform: {X_transformed.shape}")
+
+            # Scale features
+            X_scaled = self.scaler.fit_transform(X_transformed)
+            logger.debug(f"After scaling: {X_scaled.shape}")
+
+            # Calculate feature variances
+            self.feature_variances = np.var(X_scaled, axis=0)
+            logger.debug(f"Feature variances calculated: {self.feature_variances}")
+
+            # Select features based on variance
+            if self.min_variance_percentile > 0:
+                variance_threshold = np.percentile(self.feature_variances, self.min_variance_percentile)
+                self.feature_mask = self.feature_variances >= variance_threshold
+                X_selected = X_scaled[:, self.feature_mask]
+                logger.debug(f"Features selected: {X_selected.shape}")
+            else:
+                self.feature_mask = np.ones(X_scaled.shape[1], dtype=bool)
+                X_selected = X_scaled
+
+            return X_selected
+
+        # During inference (no target `y` provided)
+        else:
+            # Apply saved transformations
+            X_transformed = self.power_transformer.transform(X)
+            X_scaled = self.scaler.transform(X_transformed)
+
+            # Apply feature selection if used during training
+            if self.feature_mask is not None:
+                X_selected = X_scaled[:, self.feature_mask]
+                logger.debug(f"Features selected for inference: {X_selected.shape}")
+            else:
+                X_selected = X_scaled
+
+            return X_selected
+
+
+            
+    def get_model_params(self) -> Dict[str, Tuple[str, Any]]:
+        """
+        Define hyperparameter search space for Gaussian Naive Bayes.
+        
+        Returns:
+            Dictionary of parameter names and their valid ranges/options
+        """
+        return {
+            'var_smoothing': ('float', (1e-11, 1e-7)),
+            'min_variance_percentile': ('float', (0, 5))
+        }
+        
+    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+        """
+        Calculate feature importance based on variance.
+        Higher variance indicates more discriminative power in Naive Bayes.
+        
+        Returns:
+            Dictionary mapping feature names to their importance scores
+        """
+        if self.feature_variances is None or not self.is_fitted:
+            return None
+            
+        # Get original feature names
+        if self.feature_names is None:
+            feature_names = [f'feature_{i}' for i in range(len(self.feature_variances))]
+        else:
+            feature_names = self.feature_names
+            
+        # Create importance dictionary only for selected features
+        if self.feature_mask is not None:
+            selected_features = [
+                name for name, selected in zip(feature_names, self.feature_mask)
+                if selected
+            ]
+            selected_variances = self.feature_variances[self.feature_mask]
+        else:
+            selected_features = feature_names
+            selected_variances = self.feature_variances
+            
+        # Normalize variances to get importance scores
+        importance_scores = selected_variances / np.sum(selected_variances)
+        
+        return dict(sorted(
+            zip(selected_features, importance_scores),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+        
+    def get_feature_density_plot_data(self, X: np.ndarray, 
+                                    y: np.ndarray) -> Dict[str, np.ndarray]:
+        """
+        Get data for plotting feature density by class.
+        Useful for visualizing the Gaussian assumption.
+        
+        Args:
+            X: Input features
+            y: Target labels
+            
+        Returns:
+            Dictionary with data for density plotting
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before getting density plot data")
+            
+        # Preprocess the data
+        X_processed = self.preprocess_data(X)
+        
+        # Get unique classes
+        classes = np.unique(y)
+        
+        # Calculate mean and std for each feature per class
+        density_data = {}
+        for class_label in classes:
+            class_mask = y == class_label
+            X_class = X_processed[class_mask]
+            
+            density_data[class_label] = {
+                'means': np.mean(X_class, axis=0),
+                'stds': np.std(X_class, axis=0)
+            }
+            
+        return density_data</document_content>
+</document>
+<document index="12">
+<source>./app/models/decision_tree.py</source>
+<document_content>
+# app/models/decision_tree.py
+
+from typing import Dict, Optional, Tuple, Any, Union, List
+import numpy as np
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.preprocessing import StandardScaler
+import matplotlib.pyplot as plt
+from io import BytesIO
+import base64
+from .base_model import BaseGenreModel
+
+class DecisionTreeModel(BaseGenreModel):
+    """
+    Decision Tree implementation for genre classification.
+    
+    Features:
+    - Custom splitting criteria
+    - Tree visualization generation
+    - Path analysis for predictions
+    - Feature importance based on information gain
+    - Automatic pruning strategies
+    """
+    
+    def __init__(
+        self,
+        max_depth: Optional[int] = None,
+        min_samples_split: int = 2,
+        min_samples_leaf: int = 1,
+        criterion: str = 'gini',
+        class_weight: str = 'balanced',
+        ccp_alpha: float = 0.0
+    ):
+        """
+        Initialize Decision Tree model.
+        
+        Args:
+            max_depth: Maximum depth of the tree
+            min_samples_split: Minimum samples required to split
+            min_samples_leaf: Minimum samples required at leaf node
+            criterion: Splitting criterion ('gini' or 'entropy')
+            class_weight: Class weight strategy
+            ccp_alpha: Complexity parameter for pruning
+        """
+        super().__init__()
+        self.model = DecisionTreeClassifier(
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            criterion=criterion,
+            class_weight=class_weight,
+            ccp_alpha=ccp_alpha,
+            random_state=42
+        )
+        self.scaler = StandardScaler()
+        self.feature_threshold_map: Dict[str, List[float]] = {}
+        
+    def preprocess_data(self, X: Union[np.ndarray, pd.DataFrame],
+                       y: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Preprocess data specifically for Decision Tree:
+        1. Scale features
+        2. Store feature thresholds
+        
+        Args:
+            X: Input features
+            y: Target labels (only used during training)
+            
+        Returns:
+            Preprocessed features
+        """
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        # During training
+        if y is not None:
+            X_scaled = self.scaler.fit_transform(X)
+            return X_scaled
+            
+        # During prediction
+        return self.scaler.transform(X)
+        
+    def fit(self, X: Union[np.ndarray, pd.DataFrame], y: np.ndarray) -> 'DecisionTreeModel':
+        """
+        Fit the model and store feature thresholds.
+        
+        Args:
+            X: Training features
+            y: Target labels
+            
+        Returns:
+            self: The fitted model
+        """
+        # Regular fit
+        super().fit(X, y)
+        
+        # Store feature thresholds
+        self._store_feature_thresholds()
+        
+        return self
+        
+    def _store_feature_thresholds(self):
+        """Store the threshold values used for each feature in the tree."""
+        if not self.is_fitted:
+            return
+            
+        # Get feature names
+        feature_names = (self.feature_names if self.feature_names is not None 
+                        else [f'feature_{i}' for i in range(self.model.n_features_in_)])
+        
+        # Initialize threshold map
+        self.feature_threshold_map = {name: [] for name in feature_names}
+        
+        # Get threshold values for each feature
+        tree = self.model.tree_
+        for feature_idx in range(len(feature_names)):
+            # Find all nodes that split on this feature
+            feature_nodes = np.where(tree.feature == feature_idx)[0]
+            if len(feature_nodes) > 0:
+                thresholds = tree.threshold[feature_nodes]
+                self.feature_threshold_map[feature_names[feature_idx]] = sorted(
+                    list(set(thresholds[thresholds != -2]))  # Remove leaf node markers
+                )
+                
+    def get_model_params(self) -> Dict[str, Tuple[str, Any]]:
+        """
+        Define hyperparameter search space for Decision Tree.
+        
+        Returns:
+            Dictionary of parameter names and their valid ranges/options
+        """
+        return {
+            'max_depth': ('int', (3, 20)),
+            'min_samples_split': ('int', (2, 20)),
+            'min_samples_leaf': ('int', (1, 10)),
+            'criterion': ('categorical', ['gini', 'entropy']),
+            'ccp_alpha': ('float', (0.0, 0.05))
+        }
+        
+    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+        """
+        Get feature importance based on the tree structure.
+        
+        Returns:
+            Dictionary mapping feature names to importance scores
+        """
+        if not self.is_fitted or not hasattr(self.model, 'feature_importances_'):
+            return None
+            
+        importances = self.model.feature_importances_
+        
+        if self.feature_names is None:
+            feature_names = [f'feature_{i}' for i in range(len(importances))]
+        else:
+            feature_names = self.feature_names
+            
+        return dict(sorted(
+            zip(feature_names, importances),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+        
+    def get_decision_path(self, X: Union[np.ndarray, pd.DataFrame]) -> List[str]:
+        """
+        Get the decision path for a single sample.
+        
+        Args:
+            X: Single sample to analyze
+            
+        Returns:
+            List of decision rules used for classification
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before getting decision path")
+            
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        if len(X.shape) == 1:
+            X = X.reshape(1, -1)
+            
+        X_processed = self.preprocess_data(X)
+        
+        feature_names = (self.feature_names if self.feature_names is not None 
+                        else [f'feature_{i}' for i in range(self.model.n_features_in_)])
+        
+        # Get node indicator matrix
+        node_indicator = self.model.decision_path(X_processed)
+        
+        # Get leaf ids
+        leaf_id = self.model.apply(X_processed)
+        
+        # Get tree structure
+        tree = self.model.tree_
+        
+        # Generate decision path
+        path = []
+        for sample_id in range(len(X)):
+            # Get nodes for this sample
+            node_index = node_indicator.indices[
+                node_indicator.indptr[sample_id]:node_indicator.indptr[sample_id + 1]
+            ]
+            
+            for node_id in node_index[:-1]:  # Exclude leaf
+                feature_id = tree.feature[node_id]
+                threshold = tree.threshold[node_id]
+                
+                if X_processed[sample_id, feature_id] <= threshold:
+                    inequality = "<="
+                else:
+                    inequality = ">"
+                    
+                path.append(
+                    f"{feature_names[feature_id]} {inequality} {threshold:.2f}"
+                )
+                
+        return path
+        
+    def get_tree_visualization(self, 
+                             max_depth: Optional[int] = None,
+                             feature_names: Optional[List[str]] = None) -> str:
+        """
+        Generate a visualization of the decision tree.
+        
+        Args:
+            max_depth: Maximum depth to show in visualization
+            feature_names: Custom feature names to use
+            
+        Returns:
+            Base64 encoded PNG image of the tree
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before visualization")
+            
+        plt.figure(figsize=(20, 10))
+        
+        if feature_names is None and self.feature_names is not None:
+            feature_names = self.feature_names
+            
+        plot_tree(
+            self.model,
+            feature_names=feature_names,
+            class_names=list(self.label_encoder.classes_),
+            filled=True,
+            rounded=True,
+            max_depth=max_depth
+        )
+        
+        # Save plot to bytes buffer
+        buf = BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight')
+        plt.close()
+        
+        # Encode as base64
+        buf.seek(0)
+        image_png = buf.getvalue()
+        buf.close()
+        
+        graphic = base64.b64encode(image_png).decode('utf-8')
+        return graphic
+        
+    def get_feature_thresholds(self) -> Dict[str, List[float]]:
+        """
+        Get the threshold values used for each feature in the tree.
+        
+        Returns:
+            Dictionary mapping feature names to their threshold values
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before getting thresholds")
+            
+        return self.feature_threshold_map
+        
+    def cost_complexity_pruning(self, X_val: np.ndarray, y_val: np.ndarray) -> None:
+        """
+        Perform cost complexity pruning using validation data.
+        
+        Args:
+            X_val: Validation features
+            y_val: Validation labels
+        """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before pruning")
+            
+        # Get path of ccp_alphas
+        path = self.model.cost_complexity_pruning_path(X_val, y_val)
+        ccp_alphas = path.ccp_alphas
+        
+        # Create trees with different alphas
+        trees = []
+        for ccp_alpha in ccp_alphas:
+            tree = DecisionTreeClassifier(
+                random_state=42,
+                ccp_alpha=ccp_alpha,
+                **{k: v for k, v in self.model.get_params().items() if k != 'ccp_alpha'}
+            )
+            tree.fit(X_val, y_val)
+            trees.append(tree)
+            
+        # Find best alpha
+        accuracies = [tree.score(X_val, y_val) for tree in trees]
+        best_alpha_idx = np.argmax(accuracies)
+        
+        # Update model with best alpha
+        self.model.set_params(ccp_alpha=ccp_alphas[best_alpha_idx])
+        self.model.fit(X_val, y_val)
+        
+        # Update thresholds
+        self._store_feature_thresholds()</document_content>
+</document>
+<document index="13">
+<source>./app/models/logistic_regression.py</source>
+<document_content>
+# app/models/logistic_regression.py
+
+from typing import Dict, Optional, Tuple, Any, Union
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures
+from sklearn.feature_selection import SelectFromModel, RFE
+import warnings
+from .base_model import BaseGenreModel
+
+class LogisticRegressionModel(BaseGenreModel):
+    """
+    Logistic Regression implementation for genre classification.
+    
+    Features:
+    - L1/L2 regularization support
+    - Polynomial feature generation
+    - Recursive feature elimination
+    - Automatic handling of multicollinearity
+    - Feature importance based on coefficients
+    """
+    
+    def __init__(
+        self,
+        C: float = 1.0,
+        penalty: str = 'l2',
+        poly_degree: int = 2,
+        n_features_to_select: Optional[int] = None,
+        solver: str = 'saga',
+        max_iter: int = 1000
+    ):
+        """
+        Initialize Logistic Regression model.
+        
+        Args:
+            C: Inverse of regularization strength
+            penalty: Regularization type ('l1', 'l2', or 'elasticnet')
+            poly_degree: Degree of polynomial features
+            n_features_to_select: Number of features to select using RFE
+            solver: Algorithm to use for optimization
+            max_iter: Maximum number of iterations for solver
+        """
+        super().__init__()
+        
+        # Handle warning for convergence
+        warnings.filterwarnings('ignore', category=UserWarning)
+        
+        self.model = LogisticRegression(
+            C=C,
+            penalty=penalty,
+            solver=solver,
+            max_iter=max_iter,
+            multi_class='multinomial',
+            class_weight='balanced',
+            random_state=42,
+            n_jobs=-1
+        )
+        
+        self.scaler = StandardScaler()
+        self.poly_degree = poly_degree
+        self.n_features_to_select = n_features_to_select
+        
+        self.poly_transformer: Optional[PolynomialFeatures] = None
+        self.feature_selector: Optional[RFE] = None
+        self.selected_feature_mask: Optional[np.ndarray] = None
+        self.feature_names_poly: Optional[list] = None
+        
+    def _generate_polynomial_features(self, X: np.ndarray) -> np.ndarray:
+        """
+        Generate polynomial features up to specified degree.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Array with polynomial features
+        """
+        if self.poly_transformer is None:
+            self.poly_transformer = PolynomialFeatures(
+                degree=self.poly_degree,
+                include_bias=False,
+                interaction_only=True
+            )
+            
+        if self.is_fitted:
+            return self.poly_transformer.transform(X)
+        else:
+            X_poly = self.poly_transformer.fit_transform(X)
+            # Store polynomial feature names
+            if self.feature_names is not None:
+                self.feature_names_poly = (
+                    self.poly_transformer.get_feature_names_out(self.feature_names)
+                )
+            return X_poly
+            
+    def _handle_multicollinearity(self, X: np.ndarray, threshold: float = 0.95) -> np.ndarray:
+        """
+        Remove highly correlated features.
+        
+        Args:
+            X: Input features
+            threshold: Correlation threshold for removal
+            
+        Returns:
+            Array with uncorrelated features
+        """
+        if X.shape[1] < 2:
+            return X
+            
+        # Calculate correlation matrix
+        corr_matrix = np.abs(np.corrcoef(X.T))
+        
+        # Find pairs of highly correlated features
+        upper_tri = np.triu(corr_matrix, k=1)
+        to_drop = set()
+        
+        for i in range(len(corr_matrix)):
+            for j in range(i + 1, len(corr_matrix)):
+                if upper_tri[i, j] > threshold:
+                    # Drop the feature with higher mean correlation
+                    mean_corr_i = np.mean(np.abs(corr_matrix[i]))
+                    mean_corr_j = np.mean(np.abs(corr_matrix[j]))
+                    to_drop.add(j if mean_corr_j > mean_corr_i else i)
+        
+        # Keep track of removed features
+        self.removed_features = list(to_drop)
+        
+        # Create mask for remaining features
+        keep_mask = ~np.isin(np.arange(X.shape[1]), list(to_drop))
+        
+        # Update feature names if available
+        if self.feature_names_poly is not None:
+            self.feature_names_poly = [
+                name for i, name in enumerate(self.feature_names_poly)
+                if i not in to_drop
+            ]
+        
+        return X[:, keep_mask]
+        
+    def preprocess_data(self, X: Union[np.ndarray, pd.DataFrame],
+                       y: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Preprocess data specifically for Logistic Regression:
+        1. Scale features
+        2. Generate polynomial features
+        3. Handle multicollinearity
+        4. Select features using RFE
+        
+        Args:
+            X: Input features
+            y: Target labels (only used during training)
+            
+        Returns:
+            Preprocessed features
+        """
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        # During training
+        if y is not None:
+            # Scale features
+            X_scaled = self.scaler.fit_transform(X)
+            
+            # Generate polynomial features
+            X_poly = self._generate_polynomial_features(X_scaled)
+            
+            # Handle multicollinearity
+            X_uncorr = self._handle_multicollinearity(X_poly)
+            
+            # Feature selection using RFE if specified
+            if self.n_features_to_select is not None:
+                self.feature_selector = RFE(
+                    estimator=self.model,
+                    n_features_to_select=self.n_features_to_select,
+                    step=0.1
+                )
+                X_selected = self.feature_selector.fit_transform(X_uncorr, y)
+                self.selected_feature_mask = self.feature_selector.support_
+                return X_selected
+                
+            return X_uncorr
+            
+        # During prediction
+        else:
+            X_scaled = self.scaler.transform(X)
+            X_poly = self._generate_polynomial_features(X_scaled)
+            X_uncorr = self._handle_multicollinearity(X_poly)
+            
+            if self.feature_selector is not None:
+                return self.feature_selector.transform(X_uncorr)
+                
+            return X_uncorr
+            
+    def get_model_params(self) -> Dict[str, Tuple[str, Any]]:
+        """
+        Define hyperparameter search space for Logistic Regression.
+        
+        Returns:
+            Dictionary of parameter names and their valid ranges/options
+        """
+        return {
+            'C': ('float', (0.001, 10.0)),
+            'penalty': ('categorical', ['l1', 'l2', 'elasticnet']),
+            'l1_ratio': ('float', (0.0, 1.0)),
+            'poly_degree': ('int', (1, 3)),
+            'n_features_to_select': ('int', (10, 50))
+        }
+        
+    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+        """
+        Get feature importance based on model coefficients.
+        
+        Returns:
+            Dictionary mapping feature names to importance scores
+        """
+        if not self.is_fitted or not hasattr(self.model, 'coef_'):
+            return None
+            
+        # Get absolute mean coefficients across all classes
+        importances = np.abs(self.model.coef_).mean(axis=0)
+        
+        # Get feature names
+        if self.feature_names_poly is not None:
+            feature_names = self.feature_names_poly
+        else:
+            feature_names = [f'feature_{i}' for i in range(len(importances))]
+            
+        # If feature selection was used, only include selected features
+        if self.selected_feature_mask is not None:
+            feature_names = [
+                name for name, selected in zip(feature_names, self.selected_feature_mask)
+                if selected
+            ]
+            importances = importances[self.selected_feature_mask]
+            
+        # Create and sort importance dictionary
+        importance_dict = dict(zip(feature_names, importances))
+        return dict(sorted(
+            importance_dict.items(),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+        
+    def get_class_coefficients(self) -> Optional[Dict[str, Dict[str, float]]]:
+        """
+        Get coefficients for each class and feature.
+        
+        Returns:
+            Nested dictionary mapping classes to their feature coefficients
+        """
+        if not self.is_fitted or not hasattr(self.model, 'coef_'):
+            return None
+            
+        coef_dict = {}
+        classes = self.label_encoder.classes_
+        
+        # Get feature names
+        if self.feature_names_poly is not None:
+            feature_names = self.feature_names_poly
+        else:
+            feature_names = [f'feature_{i}' for i in range(self.model.coef_.shape[1])]
+            
+        # If feature selection was used, only include selected features
+        if self.selected_feature_mask is not None:
+            feature_names = [
+                name for name, selected in zip(feature_names, self.selected_feature_mask)
+                if selected
+            ]
+            
+        # Create dictionary for each class
+        for idx, class_name in enumerate(classes):
+            coef_dict[class_name] = dict(zip(feature_names, self.model.coef_[idx]))
+            
+        return coef_dict</document_content>
+</document>
+<document index="14">
+<source>./app/models/random_forest.py</source>
+<document_content>
+# app/models/random_forest.py
+
+from typing import Dict, Optional, Tuple, Any, Union
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.feature_selection import SelectFromModel
+from .base_model import BaseGenreModel
+
+class RandomForestModel(BaseGenreModel):
+    """
+    Random Forest implementation for genre classification.
+    Includes feature importance-based selection and specific preprocessing.
+    
+    Features:
+    - Automatic feature selection based on importance
+    - Feature interaction generation
+    - Handling of class imbalance
+    - Comprehensive feature importance analysis
+    """
+    
+    def __init__(
+        self,
+        n_estimators: int = 200,
+        max_depth: Optional[int] = None,
+        min_samples_split: int = 2,
+        min_samples_leaf: int = 1,
+        importance_threshold: float = 0.01
+    ):
+        """
+        Initialize Random Forest model with custom configurations.
+        
+        Args:
+            n_estimators: Number of trees in the forest
+            max_depth: Maximum depth of each tree
+            min_samples_split: Minimum samples required to split a node
+            min_samples_leaf: Minimum samples required at each leaf node
+            importance_threshold: Minimum feature importance to keep feature
+        """
+        super().__init__()
+        self.model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            min_samples_split=min_samples_split,
+            min_samples_leaf=min_samples_leaf,
+            max_features='sqrt',
+            class_weight='balanced',
+            random_state=42,
+            n_jobs=-1
+        )
+        self.scaler = StandardScaler()
+        self.importance_threshold = importance_threshold
+        self.feature_selector: Optional[SelectFromModel] = None
+        self.selected_feature_mask: Optional[np.ndarray] = None
+        self.interaction_features: Optional[list] = None
+        
+    def _generate_interactions(self, X: np.ndarray) -> np.ndarray:
+        """
+        Generate interaction features between important features.
+        
+        Args:
+            X: Input features
+            
+        Returns:
+            Array with original and interaction features
+        """
+        if not self.is_fitted or self.selected_feature_mask is None:
+            return X
+            
+        # Get indices of important features
+        important_indices = np.where(self.selected_feature_mask)[0]
+        
+        # Generate interactions only if we have multiple important features
+        if len(important_indices) > 1:
+            interactions = []
+            self.interaction_features = []  # Store interaction feature names
+            
+            # Generate pairwise interactions for important features
+            for i in range(len(important_indices)):
+                for j in range(i + 1, len(important_indices)):
+                    idx1, idx2 = important_indices[i], important_indices[j]
+                    interaction = X[:, idx1] * X[:, idx2]
+                    interactions.append(interaction.reshape(-1, 1))
+                    
+                    # Store interaction feature names
+                    if self.feature_names is not None:
+                        self.interaction_features.append(
+                            f"{self.feature_names[idx1]}_{self.feature_names[idx2]}_interaction"
+                        )
+                    else:
+                        self.interaction_features.append(
+                            f"feature_{idx1}_feature_{idx2}_interaction"
+                        )
+            
+            if interactions:
+                return np.hstack([X] + interactions)
+        
+        return X
+        
+    def preprocess_data(self, X: Union[np.ndarray, pd.DataFrame],
+                       y: Optional[np.ndarray] = None) -> np.ndarray:
+        """
+        Preprocess data specifically for Random Forest:
+        1. Scale features
+        2. Select important features
+        3. Generate interaction features
+        
+        Args:
+            X: Input features
+            y: Target labels (only used during training)
+            
+        Returns:
+            Preprocessed features
+        """
+        if isinstance(X, pd.DataFrame):
+            X = X.values
+            
+        # During training
+        if y is not None:
+            # Scale features
+            X_scaled = self.scaler.fit_transform(X)
+            
+            # Initial fit to determine feature importances
+            self.model.fit(X_scaled, y)
+            
+            # Create feature selector based on importance threshold
+            self.feature_selector = SelectFromModel(
+                self.model,
+                threshold=self.importance_threshold,
+                prefit=True
+            )
+            self.selected_feature_mask = self.feature_selector.get_support()
+            
+            # Select important features
+            X_selected = self.feature_selector.transform(X_scaled)
+            
+            # Generate interaction features
+            X_interactions = self._generate_interactions(X_selected)
+            
+            return X_interactions
+            
+        # During prediction
+        else:
+            # Scale features
+            X_scaled = self.scaler.transform(X)
+            
+            # Select important features if selection was done during training
+            if self.feature_selector is not None:
+                X_selected = self.feature_selector.transform(X_scaled)
+                # Generate interaction features
+                X_interactions = self._generate_interactions(X_selected)
+                return X_interactions
+                
+            return X_scaled
+            
+    def get_model_params(self) -> Dict[str, Tuple[str, Any]]:
+        """
+        Define hyperparameter search space for Random Forest.
+        
+        Returns:
+            Dictionary of parameter names and their valid ranges/options
+        """
+        return {
+            'n_estimators': ('int', (100, 500)),
+            'max_depth': ('int', (10, 100)),
+            'min_samples_split': ('int', (2, 20)),
+            'min_samples_leaf': ('int', (1, 10)),
+            'importance_threshold': ('float', (0.001, 0.1))
+        }
+        
+    def get_feature_importance(self) -> Optional[Dict[str, float]]:
+        """
+        Get feature importance scores including interaction features.
+        
+        Returns:
+            Dictionary mapping feature names to importance scores
+        """
+        if not self.is_fitted or not hasattr(self.model, 'feature_importances_'):
+            return None
+            
+        importances = self.model.feature_importances_
+        
+        # Get base feature names
+        if self.feature_names is None:
+            base_features = [f'feature_{i}' for i in range(len(self.selected_feature_mask))]
+        else:
+            base_features = self.feature_names
+            
+        # Get selected feature names
+        selected_features = [
+            name for name, selected in zip(base_features, self.selected_feature_mask)
+            if selected
+        ]
+        
+        # Add interaction feature names if they exist
+        if self.interaction_features:
+            all_features = selected_features + self.interaction_features
+        else:
+            all_features = selected_features
+            
+        # Create importance dictionary
+        importance_dict = dict(zip(all_features, importances))
+        
+        # Sort by importance
+        return dict(sorted(
+            importance_dict.items(),
+            key=lambda x: x[1],
+            reverse=True
+        ))
+        
+    def get_feature_interactions(self) -> Optional[Dict[str, float]]:
+        """
+        Get the strength of feature interactions based on their importance.
+        
+        Returns:
+            Dictionary mapping interaction names to their importance scores
+        """
+        if not self.is_fitted or not self.interaction_features:
+            return None
+            
+        importances = self.model.feature_importances_
+        n_original = sum(self.selected_feature_mask)
+        interaction_importances = importances[n_original:]
+        
+        return dict(sorted(
+            zip(self.interaction_features, interaction_importances),
+            key=lambda x: x[1],
+            reverse=True
+        ))</document_content>
+</document>
+<document index="15">
+<source>./app/static/css/styles.css</source>
+<document_content>
+/* app/static/css/styles.css */
+
 /* Base Styles */
+:root {
+    --primary-color: #4a90e2;
+    --secondary-color: #2c3e50;
+    --success-color: #2ecc71;
+    --error-color: #e74c3c;
+    --warning-color: #f1c40f;
+    --text-color: #333;
+    --light-gray: #f8f9fa;
+    --border-color: #dee2e6;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -678,629 +2851,794 @@ def create_genre_distribution(df):
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background-color: #f5f5f5;
+    color: var(--text-color);
+    background-color: var(--light-gray);
 }
 
 .container {
-    max-width: 95%;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 0 1rem;
 }
 
-h1 {
-    color: #2c3e50;
-    margin-bottom: 30px;
-    text-align: center;
-    font-size: 2.5em;
+/* Navigation */
+.navbar {
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 1rem 0;
+    margin-bottom: 2rem;
 }
 
-h2 {
-    color: #34495e;
-    margin: 25px 0 15px;
-    font-size: 1.8em;
+.navbar .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* Analysis Section */
-.analysis-section {
+.nav-brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.nav-links a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    margin-left: 1.5rem;
+}
+
+.nav-links a:hover {
+    color: var(--primary-color);
+}
+
+/* Settings Form */
+.settings-container {
     background: white;
     border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 30px;
+    padding: 2rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.stats-box {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-}
-
-.stats-box h3 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-}
-
-.stats-box ul {
-    list-style: none;
-}
-
-.stats-box li {
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-
-/* Visualizations */
-.visualizations {
+.settings-form {
     display: flex;
     flex-direction: column;
-    gap: 30px;
-    margin: 20px 0;
+    gap: 2rem;
+}
+
+.setting-group {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+}
+
+.setting-group h2 {
+    color: var(--secondary-color);
+    margin-bottom: 1rem;
+    font-size: 1.25rem;
+}
+
+.setting-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.radio-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.option-description {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.25rem;
+}
+
+/* Results Page */
+.results-container {
+    background: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.result-section {
+    margin-bottom: 2rem;
+}
+
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.metric-box {
+    background: var(--light-gray);
+    padding: 1rem;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.visualization-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
 }
 
 .visualization-box {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    width: 100%;
+    background: var(--light-gray);
+    padding: 1rem;
+    border-radius: 6px;
 }
 
-.visualization-box h3 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-    font-size: 1.2em;
+.visualization-box.full-width {
+    grid-column: 1 / -1;
 }
 
 .visualization-box img {
     width: 100%;
-    max-height: 600px;
-    object-fit: contain;
+    height: auto;
     border-radius: 4px;
 }
 
-/* Feature Distributions Grid Container */
-.feature-distributions-container {
+/* Buttons */
+.submit-button {
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submit-button:hover {
+    background: var(--secondary-color);
+}
+
+.button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background: var(--secondary-color);
+}
+
+/* Alerts */
+.alert {
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background: var(--success-color);
+    color: white;
+}
+
+.alert-error {
+    background: var(--error-color);
+    color: white;
+}
+
+.alert-warning {
+    background: var(--warning-color);
+    color: var(--secondary-color);
+}
+
+/* Error Page */
+.error-container {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 20px;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.error-box {
     background: white;
-    border-radius: 8px;
-    margin-top: 30px;
-}
-
-/* Main 3x3 Grid */
-.feature-distributions-main {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-}
-
-/* Bottom Row with 2 plots */
-.feature-distributions-bottom {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    width: 66.67%; /* Takes up same width as 2/3 of the grid above */
-    margin: 0 auto; /* Centers the bottom row */
-}
-
-.distribution-graph {
-    aspect-ratio: 1;  /* Maintains square shape */
-    width: 100%;
-}
-
-.distribution-graph img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-/* Model Results */
-.models-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr); /* Two columns */
-    grid-template-rows: repeat(2, auto);  /* Two rows */
-    gap: 20px;
-    margin-top: 20px;
-}
-
-.model-result {
-    background: white;
-    padding: 20px;
+    padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
 }
 
-.model-result h3 {
-    color: #2c3e50;
-    margin-bottom: 15px;
-    font-size: 1.3em;
-    padding: 0;
-    background: none;
-    box-shadow: none;
+.error-message {
+    margin: 1rem 0;
+    color: var(--error-color);
 }
 
-.model-result ul {
-    list-style: none;
-    margin: 15px 0;
-    padding: 0;
-}
-
-.model-result li {
-    padding: 5px 0;
-    margin: 0;
-    background: none;
-    box-shadow: none;
-}
-
-/* Table Container */
-.table-container {
-    overflow-x: auto;
-    margin: 15px 0;
-    overflow-y: auto;
+/* Footer */
+.footer {
     background: white;
-    border-radius: 4px;
+    padding: 1rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--secondary-color);
 }
 
-/* Classification Table */
-.classification-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 0;
-    border: none;
-}
-
-.classification-table th,
-.classification-table td {
-    padding: 8px;
-    text-align: left;
-    border: 1px solid #ddd;
-    background: none;
-    box-shadow: none;
-}
-
-.classification-table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    position: sticky;
+/* Loading State */
+.loading {
+    position: fixed;
     top: 0;
-    z-index: 1;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    display: none;
 }
 
-.classification-table tr:nth-child(even) {
-    background-color: #f8f9fa;
+.loading.active {
+    display: flex;
 }
 
-/* Remove any nested boxes */
-.model-result > div,
-.model-result > section {
-    background: none;
-    box-shadow: none;
-    padding: 0;
-    margin: 0;
-    border: none;
+.spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid var(--light-gray);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
-    .feature-distributions {
-        grid-template-columns: repeat(2, 1fr);
+@media (max-width: 768px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .visualization-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .nav-links {
+        display: none;
+    }
+    
+    .navbar .container {
+        flex-direction: column;
+        gap: 1rem;
     }
 }
 
-@media (max-width: 768px) {
+/* Toggle Switch */
+.toggle-switch {
+    position: relative;
+    display: inline-block;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-switch label {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.toggle-switch label::before {
+    content: '';
+    width: 50px;
+    height: 24px;
+    background-color: #ccc;
+    border-radius: 12px;
+    margin-right: 10px;
+    transition: background-color 0.3s;
+}
+
+.toggle-switch label::after {
+    content: '';
+    position: absolute;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.3s;
+}
+
+.toggle-switch input:checked + label::before {
+    background-color: var(--success-color);
+}
+
+.toggle-switch input:checked + label::after {
+    transform: translateX(26px);
+}
+
+/* Print Styles */
+@media print {
+    .navbar,
+    .footer,
+    .action-buttons {
+        display: none;
+    }
+    
+    body {
+        background: white;
+    }
+    
     .container {
-        padding: 10px;
-        max-width: 100%;
+        max-width: none;
+        padding: 0;
     }
     
-    .feature-distributions {
-        grid-template-columns: 1fr;
-    }
-    
-    .models-container {
-        grid-template-columns: 1fr;
+    .results-container {
+        box-shadow: none;
     }
 }</document_content>
 </document>
-<document index="11">
+<document index="16">
+<source>./app/templates/base.html</source>
+<document_content>
+<!-- app/templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Music Genre Classification{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="{{ url_for('home.home') }}" class="nav-brand">Music Genre Classifier</a>
+            <div class="nav-links">
+                <a href="{{ url_for('home.home') }}">Home</a>
+                <a href="https://github.com/yourusername/project" target="_blank">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Music Genre Classification. All rights reserved.</p>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html></document_content>
+</document>
+<document index="17">
 <source>./app/templates/results.html</source>
 <document_content>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Genre Classification Results</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
-<body>
-    <div class="container">
-        {% if model_results and model_results.get('Error') %}
-        <div class="error-message">
-            <h2>Error During Analysis</h2>
-            <p>An error occurred while processing the models. Please try again or contact support if the issue persists.</p>
+<!-- app/templates/results.html -->
+{% extends "base.html" %}
+
+{% block title %}Results - Music Genre Classification{% endblock %}
+
+{% block content %}
+<div class="results-container">
+    <h1>Analysis Results</h1>
+
+    <!-- Model Information -->
+    <section class="result-section">
+        <h2>Model Configuration</h2>
+        <div class="info-box">
+            <p><strong>Model:</strong> {{ model_name }}</p>
+            <p><strong>Processing Method:</strong> {{ processing_method }}</p>
+            <p><strong>Hyperparameter Optimization:</strong> {{ 'Enabled' if use_hyperopt else 'Disabled' }}</p>
         </div>
-        {% endif %}
-        <h1>Music Genre Classification Results</h1>
-        <div class="smote-toggle">
-            <h2>SMOTE Settings</h2>
-            <div class="toggle-container">
-                <span>SMOTE is currently: {{ 'Enabled' if use_smote else 'Disabled' }}</span>
-                <form method="get" class="toggle-form">
-                    <input type="hidden" name="use_smote" value="{{ 'false' if use_smote else 'true' }}">
-                    <button type="submit" class="toggle-button {{ 'active' if use_smote else '' }}">
-                        {{ 'Disable SMOTE' if use_smote else 'Enable SMOTE' }}
-                    </button>
-                </form>
+    </section>
+
+    <!-- Performance Metrics -->
+    <section class="result-section">
+        <h2>Model Performance</h2>
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <h3>Accuracy</h3>
+                <p class="metric-value">{{ "%.3f"|format(evaluation.accuracy) }}</p>
             </div>
-            {% if analysis_results.smote_applied %}
-            <div class="distribution-comparison">
-                <div class="distribution-box">
-                    <h3>Original Class Distribution</h3>
-                    <ul>
-                        {% for genre, count in analysis_results.original_class_distribution.items() %}
-                        <li>{{ genre }}: {{ count }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                <div class="distribution-box">
-                    <h3>SMOTE-Balanced Distribution</h3>
-                    <ul>
-                        {% for genre, count in analysis_results.smote_class_distribution.items() %}
-                        <li>{{ genre }}: {{ count }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
+            <div class="metric-box">
+                <h3>Weighted Precision</h3>
+                <p class="metric-value">{{ "%.3f"|format(evaluation.precision_weighted) }}</p>
+            </div>
+            <div class="metric-box">
+                <h3>Weighted Recall</h3>
+                <p class="metric-value">{{ "%.3f"|format(evaluation.recall_weighted) }}</p>
+            </div>
+            <div class="metric-box">
+                <h3>Weighted F1</h3>
+                <p class="metric-value">{{ "%.3f"|format(evaluation.f1_weighted) }}</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Visualizations -->
+    <section class="result-section">
+        <h2>Visualizations</h2>
+        <div class="visualization-grid">
+            {% if visualizations.confusion_matrix %}
+            <div class="visualization-box">
+                <h3>Confusion Matrix</h3>
+                <img src="data:image/png;base64,{{ visualizations.confusion_matrix }}" 
+                     alt="Confusion Matrix">
             </div>
             {% endif %}
+
+            {% if visualizations.feature_importance %}
+            <div class="visualization-box">
+                <h3>Feature Importance</h3>
+                <img src="data:image/png;base64,{{ visualizations.feature_importance }}"
+                     alt="Feature Importance">
+            </div>
+            {% endif %}
+
+            <div class="visualization-box">
+                <h3>Genre Distribution</h3>
+                <img src="data:image/png;base64,{{ visualizations.genre_distribution }}"
+                     alt="Genre Distribution">
+            </div>
+
+            <div class="visualization-box full-width">
+                <h3>Feature Correlations</h3>
+                <img src="data:image/png;base64,{{ visualizations.correlation_matrix }}"
+                     alt="Feature Correlations">
+            </div>
         </div>
-        <!-- Dataset Analysis Section -->
-        {% if analysis_results %}
-            <h2>Dataset Analysis</h2>
-            <div class="analysis-section">
-                <div class="stats-box">
-                    <h3>Dataset Statistics</h3>
-                    <ul>
-                        <li>Total Records: {{ analysis_results.total_records }}</li>
-                        <li>Number of Features: {{ analysis_results.features }}</li>
-                        <li>Number of Genres: {{ analysis_results.genres }}</li>
-                        <li>Class Imbalance Ratio: {{ "%.2f"|format(analysis_results.imbalance_ratio) }}</li>
-                    </ul>
-                </div>
+    </section>
 
-                <!-- Visualizations -->
-                <div class="visualizations">
-                    <div class="visualization-box">
-                        <h3>Genre Distribution</h3>
-                        <img src="{{ url_for('static', filename='genre_distribution.png') }}" alt="Genre Distribution">
-                    </div>
-                    <div class="visualization-box">
-                        <h3>Feature Correlations</h3>
-                        <img src="{{ url_for('static', filename='correlations.png') }}" alt="Feature Correlations">
-                    </div>
-                    <div class="visualization-box">
-                        <h3>Feature Distributions</h3>
-                        <div class="feature-distributions-container">
-                            <div class="feature-distributions-main">
-                                {% for feature in ['danceability', 'energy', 'key', 
-                                                 'loudness', 'speechiness', 'acousticness', 
-                                                 'instrumentalness', 'liveness', 'valence'] %}
-                                    <div class="distribution-graph">
-                                        <img src="{{ url_for('static', filename='distributions/' + feature + '_dist.png') }}" 
-                                             alt="{{ feature }} distribution"
-                                             title="{{ feature }} distribution">
-                                    </div>
-                                {% endfor %}
-                            </div>
-                            <div class="feature-distributions-bottom">
-                                {% for feature in ['tempo', 'duration_ms'] %}
-                                    <div class="distribution-graph">
-                                        <img src="{{ url_for('static', filename='distributions/' + feature + '_dist.png') }}" 
-                                             alt="{{ feature }} distribution"
-                                             title="{{ feature }} distribution">
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Data Quality -->
-                {% if analysis_results.quality_checks %}
-                <div class="quality-box">
-                    <h3>Data Quality Checks</h3>
-                    <ul>
-                        <li>Duplicate Records: {{ analysis_results.quality_checks.duplicates }}</li>
-                        <li>Missing Values: {{ analysis_results.quality_checks.missing_values | length }}</li>
-                    </ul>
-                </div>
-                {% endif %}
+    <!-- Dataset Statistics -->
+    <section class="result-section">
+        <h2>Dataset Information</h2>
+        <div class="stats-grid">
+            <div class="stats-box">
+                <h3>Basic Statistics</h3>
+                <ul>
+                    <li><strong>Total Samples:</strong> {{ data_stats.total_samples }}</li>
+                    <li><strong>Features:</strong> {{ data_stats.num_features }}</li>
+                    <li><strong>Genres:</strong> {{ data_stats.genres }}</li>
+                </ul>
             </div>
-        {% endif %}
 
-        <!-- Model Results Section -->
-        {% if model_results %}
-            <h2>Model Evaluation Metrics</h2>
-            <div class="models-container">
-                {% for model_name, metrics in model_results.items() %}
-                    {% if metrics and metrics.model is not none %}  <!-- Only show if metrics are valid -->
-                        <div class="model-result">
-                            <h3>{{ model_name }}</h3>
-                            {% if use_hyperopt and metrics.get('best_params') and metrics.best_params != "Error during training" %}
-                            <div class="hyperparameters">
-                                <h4>Best Parameters:</h4>
-                                <ul>
-                                {% for param, value in metrics.best_params.items() %}
-                                    <li><strong>{{ param }}:</strong> {{ value }}</li>
-                                {% endfor %}
-                                </ul>
-                                {% if metrics.get('cv_score') %}
-                                <p><strong>Best Cross-Validation Score:</strong> {{ "%.3f"|format(metrics.cv_score) }}</p>
-                                {% endif %}
-                            </div>
-                            {% endif %}
-                            <h3>{{ model_name }}</h3>
-                            <ul>
-                                <li><strong>Accuracy:</strong> {{ "%.3f"|format(metrics.accuracy) }}</li>
-                                <li><strong>Precision (Weighted):</strong> {{ "%.3f"|format(metrics.precision_weighted) }}</li>
-                                <li><strong>Recall (Weighted):</strong> {{ "%.3f"|format(metrics.recall_weighted) }}</li>
-                                <li><strong>F1 Score (Weighted):</strong> {{ "%.3f"|format(metrics.f1_weighted) }}</li>
-                                <li><strong>Cohen's Kappa:</strong> {{ "%.3f"|format(metrics.cohen_kappa) }}</li>
-                                <li><strong>Hamming Loss:</strong> {{ "%.3f"|format(metrics.hamming_loss) }}</li>
-                            </ul>
-                            {% if metrics.classification_report %}
-                                <h4>Classification Report:</h4>
-                                <div class="table-container">
-                                    <table class="classification-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Label</th>
-                                                <th>Precision</th>
-                                                <th>Recall</th>
-                                                <th>F1-Score</th>
-                                                <th>Support</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for label, scores in metrics.classification_report.items() if label not in ['accuracy', 'macro avg', 'weighted avg', 'error'] %}
-                                                <tr>
-                                                    <td>{{ label }}</td>
-                                                    <td>{{ "%.2f"|format(scores.precision) }}</td>
-                                                    <td>{{ "%.2f"|format(scores.recall) }}</td>
-                                                    <td>{{ "%.2f"|format(scores['f1-score']) }}</td>
-                                                    <td>{{ scores.support }}</td>
-                                                </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                {% endfor %}
+            <div class="stats-box">
+                <h3>Data Quality</h3>
+                <ul>
+                    <li><strong>Missing Values:</strong> {{ data_quality.missing_values|length }}</li>
+                    <li><strong>Duplicates:</strong> {{ data_quality.duplicates }}</li>
+                </ul>
             </div>
-        {% else %}
-            <p class="flash-message">No results available. Please check the data and try again.</p>
-        {% endif %}
-    </div>    
-</body>
-</html></document_content>
+        </div>
+    </section>
+
+    <!-- Back Button -->
+    <div class="action-buttons">
+        <a href="{{ url_for('home.home') }}" class="button">Back to Settings</a>
+    </div>
+</div>
+{% endblock %}</document_content>
 </document>
-<document index="12">
+<document index="18">
 <source>./app/templates/settings.html</source>
 <document_content>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Genre Classification Settings</title>
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f5f5f5;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+<!-- app/templates/settings.html -->
+{% extends "base.html" %}
 
-        .container {
-            background: white;
-            padding: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            max-width: 500px;
-            width: 90%;
-        }
+{% block title %}Settings - Music Genre Classification{% endblock %}
 
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 1.5rem;
-            text-align: center;
-            font-size: 2rem;
-        }
+{% block content %}
+<div class="settings-container">
+    <h1>Music Genre Classification Settings</h1>
+    
+    <form action="{{ url_for('home.analyze') }}" method="GET" class="settings-form">
+        <div class="setting-group">
+            <h2>Model Selection</h2>
+            <div class="setting-options">
+                {% for model in available_models %}
+                <div class="radio-option">
+                    <input type="radio" 
+                           id="model-{{ loop.index }}" 
+                           name="model_name" 
+                           value="{{ model }}"
+                           {% if loop.first %}checked{% endif %}>
+                    <label for="model-{{ loop.index }}">{{ model }}</label>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
 
-        .settings-form {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-
-        .setting-option {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 6px;
-        }
-
-        .setting-option h2 {
-            color: #34495e;
-            margin: 0 0 0.5rem 0;
-            font-size: 1.2rem;
-        }
-
-        .setting-option p {
-            margin: 0 0 1rem 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .toggle-switch {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .submit-button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: background 0.3s ease;
-        }
-
-        .submit-button:hover {
-            background: #2980b9;
-        }
-
-        .toggle-switch input[type="checkbox"] {
-            width: 3rem;
-            height: 1.5rem;
-            appearance: none;
-            background: #ddd;
-            border-radius: 1.5rem;
-            position: relative;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        .toggle-switch input[type="checkbox"]::before {
-            content: '';
-            width: 1.3rem;
-            height: 1.3rem;
-            background: white;
-            border-radius: 50%;
-            position: absolute;
-            top: 0.1rem;
-            left: 0.1rem;
-            transition: transform 0.3s ease;
-        }
-
-        .toggle-switch input[type="checkbox"]:checked {
-            background: #2ecc71;
-        }
-
-        .toggle-switch input[type="checkbox"]:checked::before {
-            transform: translateX(1.5rem);
-        }
-
-        .toggle-label {
-            font-weight: 500;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Music Genre Classification Settings</h1>
-        <form action="/analyze" method="get" class="settings-form">
-            <div class="setting-option">
-                <h2>SMOTE (Synthetic Minority Over-sampling Technique)</h2>
-                <p>Balances the dataset by generating synthetic examples for minority classes. This can improve classification performance for imbalanced datasets.</p>
-                <div class="toggle-switch">
-                    <input type="checkbox" id="use_smote" name="use_smote" value="true">
-                    <span class="toggle-label">Enable SMOTE</span>
+        <div class="setting-group">
+            <h2>Data Processing</h2>
+            <div class="setting-options">
+                <div class="radio-option">
+                    <input type="radio" id="process-none" name="processing_method" value="none" checked>
+                    <label for="process-none">No Processing</label>
+                    <p class="option-description">Use the original dataset without any balancing or filtering.</p>
+                </div>
+                
+                <div class="radio-option">
+                    <input type="radio" id="process-smote" name="processing_method" value="smote">
+                    <label for="process-smote">SMOTE</label>
+                    <p class="option-description">Balance the dataset by generating synthetic examples for minority classes.</p>
+                </div>
+                
+                <div class="radio-option">
+                    <input type="radio" id="process-filtering" name="processing_method" value="filtering">
+                    <label for="process-filtering">Genre Filtering</label>
+                    <p class="option-description">Consolidate genres with fewer than 2000 entries into 'Other' category.</p>
                 </div>
             </div>
+        </div>
 
-            <div class="setting-option">
-                <h2>Hyperparameter Tuning</h2>
-                <p>Automatically finds the best parameters for each model. This improves accuracy but significantly increases processing time.</p>
+        <div class="setting-group">
+            <h2>Model Optimization</h2>
+            <div class="setting-options">
                 <div class="toggle-switch">
-                    <input type="checkbox" id="use_hyperopt" name="use_hyperopt" value="true">
-                    <span class="toggle-label">Enable Hyperparameter Tuning</span>
+                    <input type="checkbox" id="use-hyperopt" name="use_hyperopt" value="true">
+                    <label for="use-hyperopt">Enable Hyperparameter Optimization</label>
+                    <p class="option-description">Automatically find the best parameters for the selected model. This will increase processing time.</p>
                 </div>
             </div>
+        </div>
 
-            <button type="submit" class="submit-button">Start Analysis</button>
-        </form>
-    </div>
-</body>
-</html></document_content>
+        <button type="submit" class="submit-button">Start Analysis</button>
+    </form>
+</div>
+{% endblock %}</document_content>
 </document>
-<document index="13">
+<document index="19">
+<source>./app/templates/error.html</source>
+<document_content>
+<!-- app/templates/error.html -->
+{% extends "base.html" %}
+
+{% block title %}Error - Music Genre Classification{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-box">
+        <h1>Something Went Wrong</h1>
+        <p class="error-message">{{ error }}</p>
+        <a href="{{ url_for('home.home') }}" class="button">Back to Home</a>
+    </div>
+</div>
+{% endblock %}</document_content>
+</document>
+<document index="20">
 <source>./app/routes.py</source>
 <document_content>
-from flask import Blueprint, render_template, flash, request, redirect, url_for
-from .utils import load_and_preprocess_data, train_and_evaluate_models
-import sys
+# app/routes.py
 
-home_bp = Blueprint("home", __name__, template_folder="templates")
+from flask import Blueprint, render_template, request, jsonify
+import logging
+from pathlib import Path
+from flask import jsonify
+import numpy as np
+from typing import Dict, Any, Tuple
+import pandas as pd
 
-@home_bp.route("/", methods=['GET'])
-def home():
-    """Landing page with settings form"""
-    return render_template("settings.html")
+from .utils import (
+    DataLoader,
+    DataPreprocessor,
+    ModelEvaluator,
+    Visualizer,
+    create_pipeline,
+    load_and_prepare_data,
+    get_initial_data_insights
+)
+from .models import get_model, list_available_models
 
-@home_bp.route("/analyze", methods=['GET'])
-def analyze():
-    """Process the analysis with selected settings"""
+# Create blueprint
+home_bp = Blueprint('home', __name__, template_folder='templates')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize pipeline components
+DATA_DIR = Path('data')
+SAVE_DIR = Path('app/static')
+
+try:
+    data_loader, preprocessor, evaluator, visualizer = create_pipeline(
+        str(DATA_DIR),
+        str(SAVE_DIR)
+    )
+except Exception as e:
+    logger.error(f"Failed to initialize pipeline: {str(e)}")
+    raise
+
+def convert_to_serializable(obj):
+    """
+    Convert non-serializable objects (e.g., NumPy arrays, int64) to JSON-compatible formats.
+    """
+    if isinstance(obj, (np.integer, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float64)):
+        return float(obj)
+    elif isinstance(obj, (np.ndarray, pd.Series)):
+        return obj.tolist()
+    elif isinstance(obj, dict):
+        return {key: convert_to_serializable(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_to_serializable(item) for item in obj]
+    return obj
+
+@home_bp.route('/', methods=['GET'])
+def home() -> str:
+    """Landing page with settings form."""
     try:
-        # Get settings from query parameters
-        use_smote = request.args.get('use_smote', 'false').lower() == 'true'
-        use_hyperopt = request.args.get('use_hyperopt', 'false').lower() == 'true'
-        
-        # Update hyperparameter tuning setting in models.py
-        from .models import enable_hyperparam_tuning
-        # Force reload the models module to update the global variable
-        import importlib
-        from . import models
-        importlib.reload(models)
-        models.enable_hyperparam_tuning = use_hyperopt
-        
-        print(f"\nSettings applied:")
-        print(f"SMOTE: {use_smote}")
-        print(f"Hyperparameter Tuning: {use_hyperopt}")
-        
-        # Load, analyze, and preprocess data
-        X_train, X_test, y_train, y_test, analysis_results = load_and_preprocess_data(
-            "genres_v2.csv",
-            use_smote=use_smote
+        models = list_available_models()
+        return render_template(
+            "settings.html",
+            available_models=models
         )
-        
-        # Train models and evaluate performance
-        model_results = train_and_evaluate_models(X_train, X_test, y_train, y_test)
-        
     except Exception as e:
-        print(f"Error: {str(e)}", file=sys.stderr)
-        model_results = {}
-        analysis_results = {}
-        flash(f"An error occurred: {str(e)}", "error")
-    
-    # Render template with all results
-    return render_template(
-        "results.html",
-        model_results=model_results,
-        analysis_results=analysis_results,
-        use_smote=use_smote,
-        use_hyperopt=use_hyperopt
-    )</document_content>
+        logger.error(f"Error in home route: {str(e)}")
+        return render_template("error.html", error=str(e))
+
+@home_bp.route('/analyze', methods=['GET'])
+def analyze() -> str:
+    """
+    Process the analysis with selected settings.
+    Handles data preparation, model training, evaluation, and visualization.
+    Ensures all outputs are JSON serializable.
+    """
+    try:
+        # Step 1: Parse request settings
+        settings = {
+            'processing_method': request.args.get('processing_method', 'none'),
+            'model_name': request.args.get('model_name', 'Random Forest'),
+            'use_hyperopt': request.args.get('use_hyperopt', 'false').lower() == 'true'
+        }
+        logger.info(f"Analysis requested with settings: {settings}")
+
+        # Step 2: Load and split data
+        try:
+            df = data_loader.load_data("genres_v2.csv")
+            X_train, X_test, y_train, y_test = data_loader.split_data(df)
+        except Exception as e:
+            error_message = f"Data preparation failed: {str(e)}"
+            logger.error(error_message)
+            return jsonify({'error': error_message}), 500
+
+        # Step 3: Generate insights
+        try:
+            insights = get_initial_data_insights(data_loader, visualizer, df)
+        except Exception as e:
+            error_message = f"Failed to generate insights: {str(e)}"
+            logger.error(error_message)
+            return jsonify({'error': error_message}), 500
+
+        # Step 4: Train the model
+        try:
+            model = get_model(settings['model_name'])
+            logger.info(f"Training {settings['model_name']}...")
+            model.fit(X_train, y_train)
+        except Exception as e:
+            error_message = f"Model training failed: {str(e)}"
+            logger.error(error_message)
+            return jsonify({'error': error_message}), 500
+
+        # Step 5: Evaluate the model and generate visualizations
+        try:
+            y_pred = model.predict(X_test)
+            evaluation_results = evaluator.calculate_metrics(y_test, y_pred)
+
+            # Generate confusion matrix plot
+            conf_matrix_plot = visualizer.plot_confusion_matrix(
+                y_test,
+                y_pred,
+                list(data_loader.get_genre_mapping().keys())
+            )
+        except Exception as e:
+            error_message = f"Model evaluation failed: {str(e)}"
+            logger.error(error_message)
+            return jsonify({'error': error_message}), 500
+
+        # Step 6: Create and return response
+        response = {
+            'success': True,
+            'evaluation': convert_to_serializable(evaluation_results),
+            'visualizations': {
+                'confusion_matrix': conf_matrix_plot,
+                'genre_distribution': insights['visualizations']['genre_distribution']
+            }
+        }
+        return jsonify(response)
+
+    except Exception as e:
+        error_message = f"Analysis failed: {str(e)}"
+        logger.error(error_message)
+        return jsonify({'error': error_message}), 500
+
+@home_bp.route('/api/models', methods=['GET'])
+def get_available_models() -> Dict[str, Any]:
+    """API endpoint to get available models."""
+    try:
+        return jsonify({
+            'success': True,
+            'models': list_available_models()
+        })
+    except Exception as e:
+        logger.error(f"Failed to get models: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@home_bp.route('/api/model_info/<model_name>', methods=['GET'])
+def get_model_info(model_name: str) -> Dict[str, Any]:
+    """API endpoint to get information about a specific model."""
+    try:
+        model = get_model(model_name)
+        return jsonify({
+            'success': True,
+            'info': {
+                'name': model_name,
+                'parameters': model.get_model_params(),
+                'description': model.__doc__
+            }
+        })
+    except Exception as e:
+        logger.error(f"Failed to get model info: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+
+@home_bp.errorhandler(404)
+def not_found_error(error: Any) -> Tuple[str, int]:
+    """Handle 404 errors."""
+    logger.error(f"404 error: {error}")
+    return render_template('error.html', error="Page not found"), 404
+
+@home_bp.errorhandler(500)
+def internal_error(error: Any) -> Tuple[str, int]:
+    """Handle 500 errors."""
+    logger.error(f"500 error: {error}")
+    return render_template('error.html', error="Internal server error"), 500</document_content>
 </document>
-<document index="14">
+<document index="21">
 <source>./requirements.txt</source>
 <document_content>
 blinker==1.9.0
@@ -1322,9 +3660,12 @@ tzdata==2024.2
 Werkzeug==3.1.0
 seaborn==0.12.2
 matplotlib==3.7.2
-imbalanced-learn==0.10.1</document_content>
+imbalanced-learn==0.10.1
+optuna==3.4.0
+category_encoders==2.6.3
+xgboost==2.0.3</document_content>
 </document>
-<document index="15">
+<document index="22">
 <source>./README.txt</source>
 <document_content>
 
@@ -1385,15 +3726,51 @@ These metrics are displayed on the application page once the models have been tr
 - Hudson O'Donnell
 - Jackson Davis</document_content>
 </document>
-<document index="16">
+<document index="23">
 <source>./main.py</source>
 <document_content>
+# main.py
+
+import os
+from pathlib import Path
 from app import create_app
 
-app = create_app()
+class Config:
+    """Application configuration."""
+    # Basic Flask configuration
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-please-change'
+    DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
+    TESTING = False
+    
+    # File upload configuration
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    UPLOAD_EXTENSIONS = ['.csv']
+    
+    # Application paths
+    BASE_DIR = Path(__file__).resolve().parent
+    DATA_DIR = str(BASE_DIR / 'data')
+    STATIC_DIR = str(BASE_DIR / 'app' / 'static')
+    
+    # Model configuration
+    DEFAULT_MODEL = 'Random Forest'
+    USE_HYPEROPT = False
+    MIN_SAMPLES_PER_GENRE = 50
+    
+    # Other settings
+    LOGGING_LEVEL = os.environ.get('LOGGING_LEVEL', 'INFO')
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-</document_content>
+# Create application instance
+app = create_app(Config)
+
+if __name__ == '__main__':
+    # Run the application
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    
+    app.run(
+        host=host,
+        port=port,
+        debug=Config.DEBUG
+    )</document_content>
 </document>
 </documents>
