@@ -5,24 +5,24 @@ from sklearn.linear_model import LogisticRegression
 # Global configuration
 enable_hyperparam_tuning = False
 
-# Model definitions with optimized parameters
+# Model definitions with conservative parameters
 models = {
     "Random Forest": RandomForestClassifier(
-        n_estimators=93,
-        max_depth=8,
-        min_samples_split=5,
-        min_samples_leaf=4,
+        n_estimators=100,
+        max_depth=6,
+        min_samples_split=10,
+        min_samples_leaf=5,
         max_features='sqrt',
         class_weight='balanced',
         random_state=42
     ),
     
     "Gradient Boosting": GradientBoostingClassifier(
-        n_estimators=100,
-        learning_rate=0.05,
+        n_estimators=50,  # Reduced for faster training
+        learning_rate=0.1,
         max_depth=3,
-        min_samples_split=5,
-        min_samples_leaf=3,
+        min_samples_split=20,
+        min_samples_leaf=10,
         subsample=0.8,
         random_state=42
     ),
@@ -35,47 +35,32 @@ models = {
     )
 }
 
-# Refined parameter ranges based on optimization results
+# Parameter ranges for Optuna optimization
 param_ranges = {
     "Random Forest": {
-        # Focus around successful values
-        'n_estimators': ('int', (50, 300)),  # Narrowed around 93
-        'max_depth': ('int', (7, 15)),       # Increased minimum, focused on higher values
-        'min_samples_split': ('int', (2, 15)), # Narrowed around successful range
-        'min_samples_leaf': ('int', (2, 15)),  # Narrowed around successful range
-        'max_features': ('categorical', ['sqrt']),  # 'sqrt' consistently performed better
-        'bootstrap': ('categorical', [True, False]),  # Added to try bagging variations
-        'warm_start': ('categorical', [True, False]),  # Added for potential improvement
-        'criterion': ('categorical', ['gini', 'entropy', 'log_loss'])  # Added to test different split criteria
+        'n_estimators': ('int', (50, 200)),
+        'max_depth': ('int', (3, 8)),
+        'min_samples_split': ('int', (5, 15)),
+        'min_samples_leaf': ('int', (3, 10)),
+        'max_features': ('categorical', ['sqrt', 'log2'])
     },
     
     "Gradient Boosting": {
-        'n_estimators': ('int', (50, 250)),
-        'max_depth': ('int', (2, 10)),
-        'learning_rate': ('float', (0.001, 1)),
-        'min_samples_split': ('int', (2, 15)),
-        'min_samples_leaf': ('int', (1, 10)),
-        'subsample': ('float', (0.3, 1.5))
+        'n_estimators': ('int', (30, 80)),
+        'max_depth': ('int', (2, 4)),
+        'learning_rate': ('float', (0.05, 0.3)),
+        'min_samples_split': ('int', (10, 30)),
+        'min_samples_leaf': ('int', (5, 15)),
+        'subsample': ('float', (0.6, 0.8))
     },
     
     "Logistic Regression": {
-        'C': ('float', (0.001, 20.0)),
-        'max_iter': ('int', (100, 5000))
+        'C': ('float', (0.01, 10.0)),
+        'max_iter': ('int', (500, 2000))
     }
 }
 
-# Add advanced parameter controls
-advanced_params = {
-    "Random Forest": {
-        'class_weight': 'balanced',
-        'max_features': 'sqrt',
-        'random_state': 42,
-        'n_jobs': -1,
-        'verbose': 0
-    }
-}
-
-# Function to update hyperparameter tuning setting
 def set_hyperparam_tuning(enabled):
+    """Updates the hyperparameter tuning setting"""
     global enable_hyperparam_tuning
     enable_hyperparam_tuning = enabled
